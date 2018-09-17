@@ -7,7 +7,8 @@ from mesa.visualization.UserParam import UserSettableParameter
 
 Colors = {"Healthy": "#66cd00", "Exposed": "#ffd700", "Infected": "#b22222", "Recovered": "#9932cc"}
 
-def create_server(width,height,numb_agents,expose,recover,rate,prop_worker,prop_student,prop_retire):
+def create_server(numb_agents,width,height,expose,recover,rate,prop_worker,prop_student,prop_retire,hubs,homes,schools,workplaces,
+                  home_capacity,school_capacity,work_capacity):
     #Colors={"Healthy":"#66cd00","Exposed":"#ffd700","Infected":"#b22222","Recovered":"#9932cc"}
     grid = CanvasGrid(agent_portrayal, width, height, 500, 500)
     chart_element = ChartModule([{"Label": label, "Color": color} for (label, color) in Colors.items()])
@@ -24,7 +25,17 @@ def create_server(width,height,numb_agents,expose,recover,rate,prop_worker,prop_
                                     "rate" :rate,
                                     "prop1": prop_worker,
                                     "prop2": prop_student,
-                                    "prop3": prop_retire
+                                    "prop3": prop_retire,
+                                    "hubs":hubs,
+                                    "homes": homes,
+                                    "schools": schools,
+                                    "workplaces": workplaces,
+                                    "home_max": home_capacity,
+                                    "school_max": school_capacity,
+                                    "work_max": work_capacity,
+                                    "blocked_cells": []
+
+
 
     })
     return server
@@ -80,6 +91,15 @@ def agent_portrayal(agent):
                      # "text_color": "white",
          #            "r": 0.5,
                      }
+        if agent.type is "Rail":
+                portrayal["Color"]="green"
+        elif agent.type is "Home":
+            portrayal["Color"] = "blue"
+        elif agent.type is "Workplace":
+            portrayal["Color"] = "purple"
+        elif agent.type is "School":
+            portrayal["Color"] = "cyan"
+
     else:
         portrayal={}
     return portrayal

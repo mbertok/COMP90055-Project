@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import  random
 import math
+import secrets
 
 import random
 
@@ -19,19 +20,24 @@ def compute_gini(model):
 def get_closest(locs,dest):
     min=9999#hardcoded for now
     next=(0,0)
-    for loc in locs:
+    print(locs)
+    for loc in list(locs):
         if manhattan_distance(loc,dest)<min:
             min=manhattan_distance(loc,dest)
             next=loc
     return next
 def manhattan_distance(x, y):
+    print(x)
+    print(y)
     print(str(list(zip(x,y))))
-    return sum(abs(a - b) for a, b in zip(x, y))
+    return sum(abs(int(a) - int(b)) for a, b in zip(x, y))
 class Model(Model):
     """A model with some number of agents."""
-    def __init__(self, N, width, height,expose,recover,rate,prop1=0.2,prop2=0.3,prop3=0.5,hubs=[[(2,3),(3,4),(4,5),(9,9)]],homes=[(0,0)],schools=[(0,0)],workplaces=[(0,0)],blocked_cells=[]):
+    def __init__(self, N, width, height,expose,recover,rate,prop1=0.2,prop2=0.3,prop3=0.5,hubs={},homes=[(0,0)],schools=[(0,0)],workplaces=[(0,0)],home_max={},school_max={},work_max={},blocked_cells=[]):
         self.num_agents = N
         self.grid = MultiGrid(width, height, False)
+        print(str(width)+":"+str(height))
+        print(prop1)
         self.schedule = RandomActivation(self)
         self.running = True
         self.expose=expose
@@ -39,38 +45,70 @@ class Model(Model):
         self.infection_rate=rate
         self.restricted=[]
         self.day=0
+        self.hour=0
+        self.quarter=0
         self.time=96#15 minute intervals
         for i in range(len(blocked_cells)):
             self.restricted.append((blocked_cells[0],blocked_cells[1]))
         #self.summary=
         #Create hubs
-        self.stations={}
-        for hub in hubs:
-            for h in range(len(hub)):
-                if h == len(hub) - 1:
-                    self.stations[hub[h]] = [hub[h - 1]]
-                elif h>0:
-                   self.stations[hub[h]]=[hub[h-1],hub[h+1]]
-                elif h==0:
-                    self.stations[hub[h]]=[hub[h+1]]
-                else:
-                    pass
-                print(hub[h])
-                self.grid.place_agent(StationaryAgent("Rail"), hub[h])
+        self.stations=hubs
+       # for hub in hubs:
+        #    for h in range(len(hub)):
+       #         if h == len(hub) - 1:
+        #            self.stations[hub[h]] = [hub[h - 1]]
+         #       elif h>0:
+          #         self.stations[hub[h]]=[hub[h-1],hub[h+1]]
+           #     elif h==0:
+            #        self.stations[hub[h]]=[hub[h+1]]
+             #   else:
+             #       pass
+              #  print(hub[h])
+        for h in self.stations.keys():
+            print(self.stations[h])
+            co=[]
+            for x in h:
+                co.append(int(x))
+            print(co)
+            self.grid.place_agent(StationaryAgent("Rail"), co)
+
         #create homes
         self.homes=homes
+        self.home_current_capacity={}
+       # self.home_max_capacity=home_max
+        self.home_max_capacity={}
+        for h in home_max.keys():
+            print("KeyH:"+str(h))
         for h in homes:
+            print("Home:"+str(h))
             self.grid.place_agent(StationaryAgent("Home"), h)
+            self.home_current_capacity[h]=0
+            self.home_max_capacity[h]=home_max[h]
         #create schools
         self.schools=schools
+        self.school_current_capacity={}
+        #self.school_max_capacity=school_max
+        self.school_max_capacity={}
+
         for s in schools:
+            print("School:"+str(s))
             self.grid.place_agent(StationaryAgent("School"), s)
+            self.school_current_capacity[s]=0
+            self.school_max_capacity[s]=school_max[s]
         #create workplaces
         self.workplaces=workplaces
+        self.workplace_current_capacity={}
+        #self.workplace_max_capacity=work_max
+        self.workplace_max_capacity={}
+
         for w in workplaces:
+            print("Workplace:"+str(w))
             self.grid.place_agent(StationaryAgent("Workplace"), w)
+            self.workplace_current_capacity[w]=0
+            self.workplace_max_capacity[w]=work_max[w]
         # Create agents
-        sum_prop=prop1+prop2+prop3
+        sum_prop=float(prop1+prop2+prop3)
+        print(sum_prop)
         self.agentprop=[(N*prop1)/sum_prop,(N*prop2)/sum_prop,(N*prop3)/sum_prop]
         stage=0
         for p in self.agentprop:
@@ -85,10 +123,12 @@ class Model(Model):
                     a= Student(i, self,expose,recover,self.infection_rate,x,y)
                 elif stage==2:
                     a=Retiree(i, self,expose,recover,self.infection_rate,x,y)
+                a.x, a.y = a.places[0]
+                print("Loc:"+str(a.x)+":"+str(a.y))
                 self.schedule.add(a)
-                self.grid.place_agent(a, (x, y))
+                self.grid.place_agent(a, (int(a.x), int(a.y)))
             stage+=1
-
+        print("Created agents")
 
         #Change later
         self.datacollector = DataCollector(
@@ -98,16 +138,22 @@ class Model(Model):
          "Recovered": lambda m: self.count_type(m, 4)
 
          })
+        print("Finished!")
        # self.datacollector = DataCollector(
         #    model_reporters={"Gini": compute_gini},  # A function to call
          #   agent_reporters={"Wealth": "wealth"})  # An agent attribute
 
     def step(self):
+        print("Step")
         self.datacollector.collect(self)
-        self.time+=1
-        if self.time==4:
+        self.quarter+=1
+        if self.quarter>3:
+            self.hour+=1
+            self.quarter=0
+        if self.hour>23:
+            self.hour=0
             self.day+=1
-            self.time=0
+
         self.schedule.step()
     #def count(self):
      #   for
@@ -209,18 +255,18 @@ class Person(Agent):
         #possible_steps=set(possible_steps).difference(self.model.restricted)
         min=9999
         next_step=(0,0)
-        print("Curr:"+str(self.x)+","+str(self.y))
-        print("to:"+str(dest))
+        #print("Curr:"+str(self.x)+","+str(self.y))
+        #print("to:"+str(dest))
         for j in possible_steps:
-            print("Testing")
-            print(j)
+           # print("Testing")
+           # print(j)
             if(manhattan_distance(j,dest))<min:
                 min=manhattan_distance(j,dest)
                 next_step=j
-                print("New min="+str(min)+" at:"+str(next_step))
+            #    print("New min="+str(min)+" at:"+str(next_step))
 
-        print("\n New loc:")
-        print(str(self.x)+":"+str(self.y)+"\n")
+        #print("\n New loc:")
+        #print(str(self.x)+":"+str(self.y)+"\n")
         #new_position = random.choice(possible_steps)
         self.model.grid.move_agent(self, next_step)
         self.x,self.y=next_step
@@ -256,14 +302,33 @@ class Person(Agent):
         self.check_routine()
         if self.stage==3 :
             self.infect()
+    def setLocation(self,list,curr_capacity_dict,max_capacity_dict):
+        selected=False
+        print("List="+str(list))
+        print("Curr:"+str(curr_capacity_dict.keys()))
+        print("Max:"+str(max_capacity_dict.keys()))
+
+        while(not selected):
+            loc=secrets.choice(list)
+            print("Selected: "+str(loc))
+            if int(curr_capacity_dict[loc])<int(max_capacity_dict[loc]):
+                selected=True
+                curr_capacity_dict[loc]+=1
+                print("Added capacity:"+str(curr_capacity_dict[loc]))
+                print("Max capacity:"+str(max_capacity_dict[loc]))
+
+        return loc
+
 
 class Worker(Person):
      def __init__(self, unique_id, model,exposed_length,recovery_time,rate,x,y):
          super().__init__( unique_id, model,exposed_length,recovery_time,rate,x,y)
          self.times = [random.randrange(7,9), random.randrange(7,10)]
          self.leavetime=[]
+         home=self.setLocation(self.model.homes,self.model.home_current_capacity,self.model.home_max_capacity)
+         workplace=self.setLocation(self.model.workplaces,self.model.workplace_current_capacity,self.model.workplace_max_capacity)
 
-         self.places=[(9,9),(2,3),(5,5)]
+         self.places=[home,workplace]
 
 
 class Student(Person):
@@ -271,11 +336,15 @@ class Student(Person):
         super().__init__(unique_id, model, exposed_length, recovery_time, rate, x, y)
         self.times = [random.randrange(8,9), random.randrange(5,7)]
         self.leavetime = []
-        self.places = [(7, 7), (2, 3), (5, 5)]
+        home = self.setLocation(self.model.homes, self.model.home_current_capacity, self.model.home_max_capacity)
+        school = self.setLocation(self.model.schools, self.model.school_current_capacity,
+                                     self.model.school_max_capacity)
+        self.places = [home,school]
 
 
 class Retiree(Person):
     def __init__(self, unique_id, model, exposed_length, recovery_time, rate, x, y):
         super().__init__(unique_id, model, exposed_length, recovery_time, rate, x, y)
         self.times = [5]
-        self.places = [ (5, 5)]
+        home = self.setLocation(self.model.homes, self.model.home_current_capacity, self.model.home_max_capacity)
+        self.places = [ home]

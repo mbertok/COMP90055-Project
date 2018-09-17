@@ -79,6 +79,7 @@ class Form(QDialog):
         # Add button signal to greetings slot
         self.button.clicked.connect(self.server)
         self.ConfigLoad.clicked.connect(self.load_config)
+        self.ran_button.clicked.connect(self.create_Random_simulation)
 
 
     def load_config(self):
@@ -86,12 +87,21 @@ class Form(QDialog):
         file_open=open(self.file[0],'r')
         parameters=["numb_agents","prop_student","prop_worker","prop_retiree","width","height","expose_time","infect_time"]
         parameter={}
+        stations={}
+        homes=[]
+        workplaces=[]
+        schools=[]
+        connected={}
+        self.homecapacity={}
+        self.schoolcapacity={}
+        self.workplacecapacity={}
+
         line_count=0
         with file_open:
             text = file_open.read()
             text=text.split("\n")
             for line in text:
-                print(text)
+                print(line)
                 line_count+=1
                 print(line_count)
                 if line_count==1:
@@ -121,24 +131,82 @@ class Form(QDialog):
                     self.recover.setText(parameter["recover_time"])
                     self.port.setText(parameter["port"])
                 else:
-                    print(text)
-                    t=line.split(":")
-                    if t[0] is "House":
-                        house_info=t[1].split(",")
-                        house_coord=house_info[0]
-                        house_id=house_info[1]
-                        house_capacity=house_info[2]
-                    elif t[0] is "Rail":
-                        station_info=t[1].split(",")
-                        station_id=station_info[0]
-                        station_coord=station_info[1]
-                        station_connected=station_info[2]
-                        for s in station_connected:
-                            print (s)
+                    #print(text)
+                    t=line.split(",")
+                    print(t[0])
+                    if t[0] == "House":
+                        house_info=t
+                        house_coord=house_info[1].split(" ")
+                        house_coord=(int(house_coord[0]),int(house_coord[1]))
+                        print(house_coord)
+                        house_id=house_info[2]
+                        house_capacity=house_info[3]
+                        homes.append((int(house_coord[0]),int(house_coord[1])))
+                        print(homes)
+                        self.homecapacity[house_coord]=house_capacity
+                        print(self.homecapacity[house_coord])
+                       # print(house_capacity)
+
+                    elif t[0]=="Rail":
+                        #print("hub!")
+                        #station_info=t[1].split(" ")
+                        station_id=t[1]
+                        print(station_id)
+                        station_coords=t[2].split(" ")
+                        station_coord=(station_coords[0],station_coords[1])
+                       # print(station_coord)
+                        station_connected=t[3]
+                        stations[station_id]=station_coord
+                        connected[station_id]=station_connected
+                      #  print(station_connected)
+                      #  for s in station_connected:
+                      #      print ("c"+str(s))
+                    elif t[0]=="School":
+                        school_info = t[1].split(" ")
+                        school_coord = (int(school_info[0]),int(school_info[1]))
+                        print(school_coord)
+                        school_id = t[2]
+                        school_capacity = t[3]
+                        schools.append(school_coord)
+                        self.schoolcapacity[school_coord]=school_capacity
+                        print( self.schoolcapacity[school_coord])
+                    elif t[0]=="Workplace":
+                        workplace_info = t[1].split(" ")
+                        workplace_coord = (int(workplace_info[0]),int(workplace_info[1]))
+                        workplace_id = t[2]
+                        workplace_capacity = t[3]
+                        workplaces.append(workplace_coord)
+                        self.workplacecapacity[workplace_coord]=workplace_capacity
 
 
 
-
+        self.hubs={}
+        print(connected.keys())
+        for k in connected.keys():
+            key=stations[k]
+            print("Key:"+str(key))
+            connect=connected[k].split(" ")
+            print(connect)
+            to_add=[]
+            for c in connect:
+                print("C:"+str(c))
+            for c in connect:
+                #c=connect[j]
+                print(c)
+                print(stations[c])
+                to_add.append(stations[c])
+                #if key in self.hubs:
+                 #   self.hubs[key]=self.hubs[key].append(stations[c])
+                #else:
+                 #   self.hubs[key]=[stations[c]]
+            self.hubs[key]=to_add
+            print(self.hubs[key])
+        #self.hubs=hubs
+        self.homes=homes
+        print("H:"+str(self.homes))
+        print("H1:"+str(self.homecapacity.keys()))
+        self.workplaces=workplaces
+        self.schools=schools
         for e in self.editable:
             e.setReadOnly(True)
             #e.setText("L")
@@ -146,34 +214,79 @@ class Form(QDialog):
    # def verify_config(self,parameters):
 
     def create_Random_simulation(self):
-        ran_width=random.randrange(10,100)
-        ran_height=random.randrange(10,100)
+        ran_width=random.randrange(10,40)
+        ran_height=random.randrange(10,40)
         ran_agent_num=random.randrange(10,1000)
         ran_exposure=random.randrange(5,100)
         ran_recover=random.randrange(5,100)
         ran_infect=random.randrange(0,1)
         ran_port=random.randrange(1000,9999)
-        prop1=random.randrange(0,1)
-        prop2=random.randrange(0,1)
-        prop3=random.randrange(0,1)
+        prop1=random.uniform(0,1)
+        prop2=random.uniform(0,1)
+        prop3=random.uniform(0,1)
+        print(str(ran_width)+":"+str(ran_height))
         #sumagents=prop1+prop2+prop3
 
-        prophub=random.randrange(0.3,0.7)
+        prophub=random.uniform(0.03,0.25)
+        #print(prophub)
+        ran_hub={}
+        hubs=self.randomCoordinates(prophub*(ran_width*ran_height),ran_width,ran_height)
+        for h in hubs:
+            num=random.randrange(2,4)
+            hub_elem=[]
+           # print(num)
+            for i in range(num):
+                hub_elem.append(hubs[random.randrange(len(hubs))])
+               # else:
+                #    ran_hub[h]=ran_hub[h].append(hubs[random.randrange(len(hubs))])
 
-        prophome=random.randrange(0.4,0.9)
-        propworkplace=random.randrange(0.4,0.9)
-        propschool=random.randrange(0.4,0.9)
+            ran_hub[h]=hub_elem
+            #print(ran_hub[h])
+        #print(hubs)
+        prophome=random.uniform(0.02,0.03)
+        propworkplace=random.uniform(0.01,0.03)
+        propschool=random.uniform(0.01,0.03)
+        prop_total=prophome+propworkplace+propschool
+       # print(prophome/prop_total)
+        #print(propschool/prop_total)
+        #print(propworkplace/prop_total)
+        homes=self.randomCoordinates((prophome)*(ran_width*ran_height),ran_width,ran_height)
+        print("Homes:"+str((prophome)))
+        workplaces=self.randomCoordinates((propworkplace)*(ran_width*ran_height),ran_width,ran_height)
+        print("Workplaces:"+str((propworkplace)))
+        schools=self.randomCoordinates((propschool)*(ran_width*ran_height),ran_width,ran_height)
+        print("Schools:"+str((propschool)))
+        #print(homes)
+        #print(workplaces)
+        #print(schools)
 
 
-        Server=create_server()
+
+        print(str(prop1)+":"+str(prop2)+":"+str(prop3))
+        Server=create_server(ran_agent_num,ran_width,ran_height,ran_exposure,ran_recover,ran_infect,prop1,prop2,prop3,ran_hub,homes,schools,workplaces)
+        Server.port=int(ran_port)
+        Server.launch()
 
 
-
+    def randomCoordinates(self,number,width,height):
+        out=[]
+        for i in range(int(number)):
+            x=random.randrange(width)
+            if x>width:
+                print ("X")
+            y=random.randrange(height)
+            if y>height:
+                print ("Y")
+            out.append((x,y))
+        return out
     # Greets the user
     def server(self):
-        Server=create_server(int(self.width.text()),int(self.height.text()),int(self.numb_agent.text()),int(self.exposure.text()),int(self.recover.text()),float(self.infection.text()),float(self.worker_prop.text()),float(self.student_prop.text()),float(self.retire_prop.text()))
+        Server=create_server(int(self.numb_agent.text()),int(self.width.text()),int(self.height.text()),int(self.exposure.text()),int(self.recover.text()),float(self.infection.text()),
+                             float(self.worker_prop.text()),float(self.student_prop.text()),float(self.retire_prop.text()),self.hubs,self.homes,self.schools,self.workplaces,
+                             self.homecapacity,self.schoolcapacity,self.workplacecapacity)
         Server.port = int(self.port.text()) # The default
         Server.launch()
+        print("Launched!")
 
 if __name__ == '__main__':
     # Create the Qt Application
