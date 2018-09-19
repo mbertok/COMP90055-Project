@@ -251,10 +251,19 @@ class Form(QDialog):
         #print(propschool/prop_total)
         #print(propworkplace/prop_total)
         homes=self.randomCoordinates((prophome)*(ran_width*ran_height),ran_width,ran_height)
+        home_capacity={}
+        for h in homes:
+            home_capacity[h]=random.randrange(int(ran_agent_num/2),int(ran_agent_num))
         print("Homes:"+str((prophome)))
         workplaces=self.randomCoordinates((propworkplace)*(ran_width*ran_height),ran_width,ran_height)
+        work_capacity = {}
+        for w in workplaces:
+            work_capacity[w] = random.randrange(int(ran_agent_num/2),int(ran_agent_num))
         print("Workplaces:"+str((propworkplace)))
         schools=self.randomCoordinates((propschool)*(ran_width*ran_height),ran_width,ran_height)
+        school_capacity = {}
+        for s in schools:
+            school_capacity[s] = random.randrange(int(ran_agent_num/2),int(ran_agent_num))
         print("Schools:"+str((propschool)))
         #print(homes)
         #print(workplaces)
@@ -263,7 +272,8 @@ class Form(QDialog):
 
 
         print(str(prop1)+":"+str(prop2)+":"+str(prop3))
-        Server=create_server(ran_agent_num,ran_width,ran_height,ran_exposure,ran_recover,ran_infect,prop1,prop2,prop3,ran_hub,homes,schools,workplaces)
+        Server=create_server(ran_agent_num,ran_width,ran_height,ran_exposure,ran_recover,ran_infect,prop1,prop2,prop3,ran_hub,homes,schools,workplaces,
+                             home_capacity,school_capacity,work_capacity)
         Server.port=int(ran_port)
         Server.launch()
 

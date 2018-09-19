@@ -1,4 +1,4 @@
-from TestMesa import Model,Person,StationaryAgent
+from Model import Model,Person,StationaryAgent
 import numpy as np
 import matplotlib.pyplot as plt
 from mesa.visualization.modules import CanvasGrid, ChartModule
@@ -59,7 +59,7 @@ def agent_portrayal(agent):
         if agent.stage==1:
             portrayal["Color"] = Colors["Healthy"]
             portrayal["Layer"] = 1
-            portrayal["r"] = 0.5
+            portrayal["r"] = 0.6
         elif agent.stage==2:
             portrayal["Color"] = Colors["Exposed"]
             portrayal["Layer"] = 2
