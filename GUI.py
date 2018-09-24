@@ -43,9 +43,24 @@ class Form(QDialog):
         self.port_label=QLabel("Port",self)
         self.port=QLineEdit("")
         self.editable.append(self.port)
+        self.school_label=QLabel("Proportion of schools(%)")
+        self.prop_school=QSpinBox()
+        self.prop_school.setRange(0,100)
+        self.home_label = QLabel("Proportion of homes(%)")
+        self.prop_home = QSpinBox()
+        self.prop_home.setRange(0, 100)
+        self.workplace_label = QLabel("Proportion of workplaces(%)")
+        self.prop_workplace = QSpinBox()
+        self.prop_workplace.setRange(0, 100)
+        #self.prop_school.setSingleStep(0.01)
+
+
+
+
         self.button = QPushButton("Create simulation")
         self.ran_button = QPushButton("Create  random simulation")
         self.ConfigLoad = QPushButton("Upload config")
+
         layout = QGridLayout()
         layout.setSpacing(10)
         layout.addWidget(self.agent,1,0)
@@ -56,6 +71,16 @@ class Form(QDialog):
         layout.addWidget(self.worker_prop,4,3,1,1)
         layout.addWidget(self.retire_prop_label, 5, 2)
         layout.addWidget(self.retire_prop,5,3,1,1)
+        layout.addWidget(self.school_label,6,2)
+        layout.addWidget(self.prop_school,6,3,1,1)
+        layout.addWidget(self.workplace_label, 7, 2)
+        layout.addWidget(self.prop_workplace, 7, 3, 1, 1)
+        layout.addWidget(self.home_label, 8, 2)
+        layout.addWidget(self.prop_home, 8, 3, 1, 1)
+
+
+
+
         layout.addWidget(self.width_label,2,0)
         layout.addWidget(self.width,2,1,1,1)
         layout.addWidget(self.height_label,3,0)
@@ -71,6 +96,7 @@ class Form(QDialog):
         layout.addWidget(self.port_label,8,0)
         layout.addWidget(self.port,8,1,1,1)
         layout.addWidget(self.button,9,1,1,1)
+
         layout.addWidget(self.ConfigLoad)
         layout.addWidget(self.ran_button)
         # Set dialog layout
@@ -251,10 +277,19 @@ class Form(QDialog):
         #print(propschool/prop_total)
         #print(propworkplace/prop_total)
         homes=self.randomCoordinates((prophome)*(ran_width*ran_height),ran_width,ran_height)
+        home_capacity={}
+        for h in homes:
+            home_capacity[h]=random.randrange(int(ran_agent_num/2),int(ran_agent_num))
         print("Homes:"+str((prophome)))
         workplaces=self.randomCoordinates((propworkplace)*(ran_width*ran_height),ran_width,ran_height)
+        work_capacity = {}
+        for w in workplaces:
+            work_capacity[w] = random.randrange(int(ran_agent_num/2),int(ran_agent_num))
         print("Workplaces:"+str((propworkplace)))
         schools=self.randomCoordinates((propschool)*(ran_width*ran_height),ran_width,ran_height)
+        school_capacity = {}
+        for s in schools:
+            school_capacity[s] = random.randrange(int(ran_agent_num/2),int(ran_agent_num))
         print("Schools:"+str((propschool)))
         #print(homes)
         #print(workplaces)
@@ -263,7 +298,8 @@ class Form(QDialog):
 
 
         print(str(prop1)+":"+str(prop2)+":"+str(prop3))
-        Server=create_server(ran_agent_num,ran_width,ran_height,ran_exposure,ran_recover,ran_infect,prop1,prop2,prop3,ran_hub,homes,schools,workplaces)
+        Server=create_server(ran_agent_num,ran_width,ran_height,ran_exposure,ran_recover,ran_infect,prop1,prop2,prop3,ran_hub,homes,schools,workplaces,
+                             home_capacity,school_capacity,work_capacity)
         Server.port=int(ran_port)
         Server.launch()
 

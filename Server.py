@@ -1,4 +1,4 @@
-from TestMesa import Model,Person,StationaryAgent
+from Model import Model,Person,StationaryAgent
 import numpy as np
 import matplotlib.pyplot as plt
 from mesa.visualization.modules import CanvasGrid, ChartModule
@@ -59,7 +59,7 @@ def agent_portrayal(agent):
         if agent.stage==1:
             portrayal["Color"] = Colors["Healthy"]
             portrayal["Layer"] = 1
-            portrayal["r"] = 0.5
+            portrayal["r"] = 0.6
         elif agent.stage==2:
             portrayal["Color"] = Colors["Exposed"]
             portrayal["Layer"] = 2
@@ -77,7 +77,7 @@ def agent_portrayal(agent):
     elif type(agent) is StationaryAgent:
         portrayal = {"Shape": "rect",
                      "Filled": "true",
-                     "Layer": 0,
+                     "Layer": 9,
                      "Color": "red",
                      "w": 1,
                      "h":1,
@@ -93,12 +93,16 @@ def agent_portrayal(agent):
                      }
         if agent.type is "Rail":
                 portrayal["Color"]="green"
+                portrayal["Shape"] = "train.png"
         elif agent.type is "Home":
             portrayal["Color"] = "blue"
+            portrayal["Shape"]="home.png"
         elif agent.type is "Workplace":
             portrayal["Color"] = "purple"
+            portrayal["Shape"]="office.png"
         elif agent.type is "School":
             portrayal["Color"] = "cyan"
+            portrayal["Shape"]="school.png"
 
     else:
         portrayal={}
