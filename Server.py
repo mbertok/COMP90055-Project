@@ -103,6 +103,9 @@ def agent_portrayal(agent):
         elif agent.type is "School":
             portrayal["Color"] = "cyan"
             portrayal["Shape"]="school.png"
+        #elif agent.type is "Venue":
+        #elif agent.type is "Shop":
+
 
     else:
         portrayal={}

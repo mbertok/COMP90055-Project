@@ -49,7 +49,14 @@ class Person(Agent):
         self.stay_time=0
         self.stage_behaviour=0
         self.step_stage=0
+        self.path={}
+        self.places={}
+        self.stay_times={}
+        self.leavetimes={}
         #rename later
+        self.stay_time=0
+        self.staying=False
+        self.current_day=self.model.day
         #self.times=[1,2,3]
         #self.places=[(9,9),(2,3),(5,5)]
         #Needs to scale with grid
@@ -60,20 +67,46 @@ class Person(Agent):
         #If time for move
         print(type(self))
         hour = self.model.hour
+        #day=self.model.day%7
         print("Hour:" + str(hour))
-        print(self.leavetime)
+        print("Day:" + str(self.current_day))
+        print(self.leavetimes)
         # Check schedule
-        if self.leavetime[self.stage_behaviour] <= hour:
-            print("L1:" + str(self.leavetime[self.stage_behaviour]))
-            print("Dest:" + str(self.path[self.places[self.stage_behaviour]]))
-            self.move(self.path[self.places[self.stage_behaviour]][self.step_stage])
-            self.step_stage+=1
-            if self.step_stage>=len(self.path[self.places[self.stage_behaviour]]):
-                self.step_stage=0
-                self.stage_behaviour+=1
-                if self.stage_behaviour>=len(self.places):
-                    self.stage_behaviour=0
-                    print("Reset"+str(self.stage_behaviour))
+        #If not staying
+        if not(self.staying):
+            if self.leavetimes[self.current_day][self.stage_behaviour] <= hour or (self.step_stage!=0):
+                print("L1:" + str(self.leavetimes[self.stage_behaviour]))
+                print("Dest:" + str(self.path[self.current_day][self.stage_behaviour]))
+                print(self.stage_behaviour)
+                print(self.step_stage)
+                print(self.unique_id)
+                self.move(list(self.path[self.current_day][self.stage_behaviour][self.step_stage]))
+                self.step_stage+=1
+                if self.step_stage>=len(self.path[self.current_day][self.stage_behaviour]):
+                    self.step_stage=0
+                    self.stage_behaviour+=1
+                    self.staying = True
+                    if self.stage_behaviour>=len(self.places[self.current_day]):
+                        self.stage_behaviour=0
+                        self.current_day+=1
+                        self.current_day=self.current_day%7
+                        print("Reset"+str(self.stage_behaviour))
+        #If staying
+        else:
+            print("Staying")
+            print(self.stay_times[self.current_day][self.stage_behaviour])
+            print(self.stay_time)
+            #If exceded stay_time+exceded leave time
+            if self.stay_time>self.stay_times[self.current_day][self.stage_behaviour]:
+                self.staying=False
+                self.stay_time=0
+                print("Leaving:")
+
+                #Not staying
+                #reset stay_time
+            else:
+                self.stay_time+=1
+                #increment stay_time
 
     def check_routine_1(self):
         #Check time
@@ -183,11 +216,14 @@ class Person(Agent):
         if len(cellmates) > 1:
             other = random.choice(cellmates)
             for c in cellmates:
-                if type(c) is Person:
+                print("Type:"+str(type(c)))
+                if issubclass(type(c),Person):
+                    print("Person!")
                     if c.stage==1:
                         if random.random()<=self.infect_prob:
                             c.stage = 2
                             c.expose=0
+                            print("Infected!")
 
 
 
@@ -227,54 +263,199 @@ class Person(Agent):
 
         return loc
 
+    def GenerateDailySchedule(self):
+        pass
+    def GenerateWeeklySchedule(self):
+        #self.schedule=[]
+        #self.leavetimes=[]
+        # probability to shop
+        prob_shop = 0.5  # base
+        self.path={}
+        #Weekdays
+        print("Weekdays")
+        self.weekday=self.GenerateDailySchedule()
+        print("Weekdays1")
+        for i in range(5):
+            #self.path.append([])
+            self.places[i]=(self.weekday)
+            self.leavetimes[i]=(self.GenerateLeaveTimesWeekDay())
+            print("New leavetimes:"+str(self.leavetimes))
+            self.Create_paths(i)
+            self.stay_times[i]=self.GenerateStayTimesWeek()
+            #self.path[i]=[]
+            #self.path[i].append()
+
+
+        print("Weekends")
+        #weekends
+        for j in range(2):
+            #If going out all day
+#            self.path.append([])
+            times=[random.randrange(6,11),random.randrange(14,17)]
+
+
+            #If going out in afternoon
+            times=[random.randrange(14,17)]
+
+            #If going out in morning
+            times=[random.randrange(6,11)]
+
+            #self.leavetimes[j+5]=(times)
+            places=[]
+            for t in times:
+                if random.uniform(0,1) < prob_shop:
+                    places.append(self.setLocation(self.model.shops,self.model.shop_current_capacity,
+                                    self.model.shop_max_capacity))
+                else:
+                    places.append(self.setLocation(self.model.entertain, self.model.entertain_current_capacity,
+                                                   self.model.entertain_max_capacity))
+            places.append(self.weekday[1])#Home of agent
+            self.places[j+5]=(places)
+            self.leavetimes[j+5]=self.GenerateLeaveTimesWeekEnd(len(places))
+            self.stay_times[j+5]=self.GenerateStayTimesWeekEnd(j)
+            self.Create_paths(j+5)
+       # self.path
+    def GenerateDailyTimes(self):
+        pass
+    def GenerateLeaveTimesWeekDay(self):
+        pass
+    def GenerateLeaveTimesWeekEnd(self,i):
+        pass
+    def GenerateStayTimesWeek(self):
+        pass
+
+ #   def GenerateLeisurePlaces(self):
+
+    def Create_paths(self,day):
+        #self.path[day]=[]
+        print(self.places[day])
+        to_add=[]
+        for p in range(len(self.places[day])):
+            if p>0:
+                to_add.append(nx.shortest_path(self.model.graph,source=(self.places[day][p-1]),target=self.places[day][p],weight="weight"))
+            else:
+                if day==0:
+                    if len(self.places[day])>1:
+                        to_add.append(nx.shortest_path(self.model.graph,source=(self.places[day][p+1]),target=self.places[day][p],weight="weight"))#Starting location
+                    else:
+                        to_add.append(nx.shortest_path(self.model.graph,source=(self.places[day][p]),target=self.places[day][p],weight="weight"))#Starting location
+                else:
+                    to_add.append(nx.shortest_path(self.model.graph,source=(self.places[day-1][-1]),target=self.places[day][p],weight="weight"))
+        self.path[day]=list(to_add)
+        print("Paths:"+str(self.path[day]))
+
+    def GenerateLeaveTimesWeekEnd(self, i):
+        times = [random.randrange(8, 10), random.randrange(13, 15), random.randrange(17, 22)]
+        leavetimes = []
+        if i <= len(times):
+            for j in range(i):
+                leavetimes.append(times[j])
+            return leavetimes
+        else:
+            print("Error!")
+    def GenerateStayTimesWeekEnd(self,i):
+        stay_times=[]
+        for j in range(len(self.leavetimes[i+5])):
+            stay_times.append(random.randrange(5,7))
+        return stay_times
+
+
+
+
 
 class Worker(Person):
      def __init__(self, unique_id, model,exposed_length,recovery_time,rate,x,y):
          super().__init__( unique_id, model,exposed_length,recovery_time,rate,x,y)
-         self.times = [random.randrange(7,9), random.randrange(7,10)]
-         self.leavetime=[random.randrange(7,9),random.randrange(15,17)]
-         home=self.setLocation(self.model.homes,self.model.home_current_capacity,self.model.home_max_capacity)
-         workplace=self.setLocation(self.model.workplaces,self.model.workplace_current_capacity,
-                                    self.model.workplace_max_capacity)
+         #self.times = [random.randrange(7,9), random.randrange(7,10)]
+         #self.leavetime=[random.randrange(7,9),random.randrange(15,17)]
+         #home=self.setLocation(self.model.homes,self.model.home_current_capacity,self.model.home_max_capacity)
+         #workplace=self.setLocation(self.model.workplaces,self.model.workplace_current_capacity,
+#                                    self.model.workplace_max_capacity)
 
-         path_to_workplace=nx.shortest_path(self.model.graph,source=(home),target=workplace,weight="weight")
-         path_to_home=nx.shortest_path(self.model.graph,source=(workplace),target=home,weight="weight")
-         print("Home path:"+str(path_to_home))
-         print("Workplace path:"+str(path_to_workplace))
-         self.path={}
-         self.path[home]=path_to_home
-         self.path[workplace]=path_to_workplace
-         self.places=[home,workplace]
-         #create path to follow for each destination
+#         path_to_workplace=nx.shortest_path(self.model.graph,source=(home),target=workplace,weight="weight")
+ #        path_to_home=nx.shortest_path(self.model.graph,source=(workplace),target=home,weight="weight")
+        # print("Home path:"+str(path_to_home))
+         #print("Workplace path:"+str(path_to_workplace))
+         self.GenerateWeeklySchedule()
+     #    self.path={}
+      #   self.path[home]=path_to_home
+       #  self.path[workplace]=path_to_workplace
+        # self.places=[home,workplace]
+         ##create path to follow for each destination
+     def GenerateDailySchedule(self):
+         home = self.setLocation(self.model.homes, self.model.home_current_capacity, self.model.home_max_capacity)
+         workplace = self.setLocation(self.model.workplaces, self.model.workplace_current_capacity,
+                                      self.model.workplace_max_capacity)
+         return [workplace,home]
+
+     def GenerateDailyTimes(self):
+         return [random.randrange(7,9),random.randrange(15,17)]
+
+     def GenerateLeaveTimesWeekDay(self):
+         return [random.randrange(7,9),random.randrange(17,21)]
+
+     def GenerateStayTimesWeek(self):
+         return [random.randrange(7,9),random.randrange(6,10)]
+
+
+
 
 
 class Student(Person):
     def __init__(self, unique_id, model, exposed_length, recovery_time, rate, x, y):
         super().__init__(unique_id, model, exposed_length, recovery_time, rate, x, y)
-        self.times = [random.randrange(8,9), random.randrange(5,7)]
-        self.leavetime = [random.randrange(6,9),random.randrange(15,17)]
+        #self.times = [random.randrange(8,9), random.randrange(5,7)]
+        #self.leavetime = [random.randrange(6,9),random.randrange(15,17)]
+       # home = self.setLocation(self.model.homes, self.model.home_current_capacity, self.model.home_max_capacity)
+        #school = self.setLocation(self.model.schools, self.model.school_current_capacity,
+                             #        self.model.school_max_capacity)
+      #  path_to_school = nx.shortest_path(self.model.graph, source=(home), target=school, weight="weight")
+      #  path_to_home = nx.shortest_path(self.model.graph, source=(school), target=home, weight="weight")
+     #   print("Home path:" + str(path_to_home))
+      #  print("school path:" + str(path_to_school))
+        self.GenerateWeeklySchedule()
+       # self.path = {}
+        #self.path[home] = path_to_home
+        #self.path[school] = path_to_school
+        #self.places = [home,school]
+
+    def GenerateDailySchedule(self):
         home = self.setLocation(self.model.homes, self.model.home_current_capacity, self.model.home_max_capacity)
         school = self.setLocation(self.model.schools, self.model.school_current_capacity,
-                                     self.model.school_max_capacity)
-        path_to_school = nx.shortest_path(self.model.graph, source=(home), target=school, weight="weight")
-        path_to_home = nx.shortest_path(self.model.graph, source=(school), target=home, weight="weight")
-        print("Home path:" + str(path_to_home))
-        print("school path:" + str(path_to_school))
-        self.path = {}
-        self.path[home] = path_to_home
-        self.path[school] = path_to_school
-        self.places = [home,school]
+                                  self.model.school_max_capacity)
+        return [school,home]
+
+    def GenerateDailyTimes(self):
+        return [random.randrange(6, 9), random.randrange(15, 17)]
+
+    def GenerateLeaveTimesWeekDay(self):
+        return [random.randrange(6, 8), random.randrange(14, 15)]
+    def GenerateStayTimesWeek(self):
+        return [random.randrange(7, 9), random.randrange(6, 7)]
+
 
 
 class Retiree(Person):
     def __init__(self, unique_id, model, exposed_length, recovery_time, rate, x, y):
         super().__init__(unique_id, model, exposed_length, recovery_time, rate, x, y)
-        self.leavetime=[0]
-        self.times = [5]
+        #self.leavetime=[0]
+        #self.times = [5]
+        #home = self.setLocation(self.model.homes, self.model.home_current_capacity, self.model.home_max_capacity)
+        self.GenerateWeeklySchedule()
+       # self.path={}
+        #self.path[home]=[home]
+        #self.places = [ home]
+
+    def GenerateDailySchedule(self):
         home = self.setLocation(self.model.homes, self.model.home_current_capacity, self.model.home_max_capacity)
-        self.path={}
-        self.path[home]=[home]
-        self.places = [ home]
+        return [home,home]
+    def GenerateLeaveTimesWeekDay(self):
+        return [random.randrange(1, 8), random.randrange(3, 10)]
+    def GenerateStayTimesWeek(self):
+        return [random.randrange(18, 21), random.randrange(18, 21)]
+
+    def GenerateDailyTimes(self):
+        return [0]
 
 class Infection_Spreader_Moving(Agent):
 

@@ -29,8 +29,8 @@ class Model(Model):
         print(prop1)
         self.schedule = BaseScheduler(self)
         self.running = True
-        self.expose=expose
-        self.recover=recover
+        self.expose=expose*96
+        self.recover=recover*96
         self.infection_rate=rate
         self.restricted=[]
         self.day=0
@@ -190,7 +190,27 @@ class Model(Model):
         # Create agents
         sum_prop=float(prop1+prop2+prop3)
         print(sum_prop)
-        self.agentprop=[1,N*(prop1/sum_prop),N*(prop2/sum_prop),N*(prop3/sum_prop)]
+
+        #Test code
+        self.shops=[(0,0),(10,10)]#change later
+        self.shop_max_capacity={}
+        self.shop_current_capacity = {}
+        for s in self.shops:
+            self.grid.place_agent(StationaryAgent("Shop"), s)
+            self.shop_current_capacity[s] = 0
+            self.shop_max_capacity[s] = 300000000 #Test value
+
+
+        self.entertain=[(5,5),(6,6)]
+        self.entertain_max_capacity = {}
+        self.entertain_current_capacity = {}
+        for e in self.entertain:
+            self.grid.place_agent(StationaryAgent("Entertain"),e)
+            self.entertain_current_capacity[e] = 0
+            self.entertain_max_capacity[e] = 30000000 #Test value
+
+
+        self.agentprop=[N*(prop1/sum_prop),N*(prop2/sum_prop),N*(prop3/sum_prop)]
         stage=1
         agent_id=0
         for p in self.agentprop:
@@ -203,14 +223,14 @@ class Model(Model):
                 #Place everyone in their own homes
                 if stage==1:
                     print("Worker")
-                    a = Worker(agent_id, self,expose,recover,self.infection_rate,x,y)
+                    a = Worker(agent_id, self,self.expose,self.recover,self.infection_rate,x,y)
                 elif stage==2:
                     print("Student")
-                    a= Student(agent_id, self,expose,recover,self.infection_rate,x,y)
+                    a= Student(agent_id, self,self.expose,self.recover,self.infection_rate,x,y)
                 elif stage==3:
                     print("Retire")
-                    a=Retiree(agent_id, self,expose,recover,self.infection_rate,x,y)
-                a.x, a.y = a.places[0]
+                    a=Retiree(agent_id, self,self.expose,self.recover,self.infection_rate,x,y)
+                a.x, a.y = a.places[0][1]
                 self.schedule.add(a)
                 self.grid.place_agent(a, (int(a.x), int(a.y)))
                 print("Loc:"+str(a.x)+":"+str(a.y))

@@ -7,6 +7,7 @@ class Form(QDialog):
 
     def __init__(self, parent=None):
         super(Form, self).__init__(parent)
+        self.setEnvironment=False
         self.ports=[]
         self.editable=[]
         # Create widgets
@@ -31,13 +32,13 @@ class Form(QDialog):
         self.infection_label = QLabel("Infection Rate", self)
         self.infection = QLineEdit("")
         self.editable.append(self.infection)
-        self.infection_length_label = QLabel("Infection length(Ticks)", self)
+        self.infection_length_label = QLabel("Infection length(Days)", self)#Not using
         self.infection_length = QLineEdit("")
         self.editable.append(self.infection_length)
-        self.exposure_label = QLabel("Exposure length(Ticks)", self)
+        self.exposure_label = QLabel("Exposure length(Days)", self)
         self.exposure = QLineEdit("")
         self.editable.append(self.exposure)
-        self.recover_label = QLabel("Time taken to recover (Ticks)", self)
+        self.recover_label = QLabel("Time taken to recover (Days)", self)
         self.recover = QLineEdit("")
         self.editable.append(self.recover)
         self.port_label=QLabel("Port",self)
@@ -117,10 +118,16 @@ class Form(QDialog):
         homes=[]
         workplaces=[]
         schools=[]
+        shops=[]
+        entertain=[]
         connected={}
         self.homecapacity={}
         self.schoolcapacity={}
         self.workplacecapacity={}
+        self.shopcapacity={}
+        self.entertaincapacity={}
+        self.setEnvironment=True
+
 
         line_count=0
         with file_open:
@@ -203,6 +210,20 @@ class Form(QDialog):
                         workplace_capacity = t[3]
                         workplaces.append(workplace_coord)
                         self.workplacecapacity[workplace_coord]=workplace_capacity
+                    elif t[0] == "Shop":
+                        shop_info = t[1].split(" ")
+                        shop_coord = (int(shop_info[0]), int(shop_info[1]))
+                        shop_id = t[2]
+                        shop_capacity = t[3]
+                        shops.append(shop_coord)
+                        self.shopcapacity[shop_coord] = shop_capacity
+                    elif t[0] == "Entertain":
+                        entertain_info = t[1].split(" ")
+                        entertain_coord = (int(entertain_info[0]), int(entertain_info[1]))
+                        entertain_id = t[2]
+                        entertain_capacity = t[3]
+                        entertain.append(entertain_coord)
+                        self.entertaincapacity[entertain_coord] = entertain_capacity
 
 
 
@@ -233,6 +254,8 @@ class Form(QDialog):
         print("H1:"+str(self.homecapacity.keys()))
         self.workplaces=workplaces
         self.schools=schools
+        self.shops=shops
+        self.entertain=entertain
         for e in self.editable:
             e.setReadOnly(True)
             #e.setText("L")
@@ -243,8 +266,8 @@ class Form(QDialog):
         ran_width=random.randrange(10,40)
         ran_height=random.randrange(10,40)
         ran_agent_num=random.randrange(10,1000)
-        ran_exposure=random.randrange(5,100)
-        ran_recover=random.randrange(5,100)
+        ran_exposure=random.uniform(0.5,3)
+        ran_recover=random.uniform(3,9)
         ran_infect=random.randrange(0,1)
         ran_port=random.randrange(1000,9999)
         prop1=random.uniform(0,1)
@@ -302,7 +325,26 @@ class Form(QDialog):
                              home_capacity,school_capacity,work_capacity)
         Server.port=int(ran_port)
         Server.launch()
+    def CreateRandomHubs(self,proportion,width,height):
+        network={}
+        hubs = self.randomCoordinates(proportion * (width * height), width, height)
+        for h in hubs:
+            num = random.randrange(2, 4)
+            hub_elem = []
+            # print(num)
+            for i in range(num):
+                hub_elem.append(hubs[random.randrange(len(hubs))])
+            # else:
+            #    ran_hub[h]=ran_hub[h].append(hubs[random.randrange(len(hubs))])
 
+            network[h] = hub_elem
+        return network
+    def CreateRandomEnvironment(self,number,proportion,width,height):
+            capacity={}
+            environment=self.randomCoordinates(proportion*(width*height),width,height)
+            for e in environment:
+                capacity[e]=random.randrange(int(number/2),int(number))
+            return environment,capacity
 
     def randomCoordinates(self,number,width,height):
         out=[]
@@ -317,6 +359,9 @@ class Form(QDialog):
         return out
     # Greets the user
     def server(self):
+        if not self.setEnvironment:
+            #self.hubs=
+            pass
         Server=create_server(int(self.numb_agent.text()),int(self.width.text()),int(self.height.text()),int(self.exposure.text()),int(self.recover.text()),float(self.infection.text()),
                              float(self.worker_prop.text()),float(self.student_prop.text()),float(self.retire_prop.text()),self.hubs,self.homes,self.schools,self.workplaces,
                              self.homecapacity,self.schoolcapacity,self.workplacecapacity)
