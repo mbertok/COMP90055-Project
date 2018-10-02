@@ -2,6 +2,10 @@ import sys
 from PySide2.QtWidgets import *
 from PySide2 import QtGui,QtCore
 from Server import create_server
+from threading import Thread
+from FileValidator import Validate
+import tkinter
+
 import random
 class Form(QDialog):
 
@@ -32,9 +36,9 @@ class Form(QDialog):
         self.infection_label = QLabel("Infection Rate", self)
         self.infection = QLineEdit("")
         self.editable.append(self.infection)
-        self.infection_length_label = QLabel("Infection length(Days)", self)#Not using
-        self.infection_length = QLineEdit("")
-        self.editable.append(self.infection_length)
+     #   self.infection_length_label = QLabel("Infection length(Days)", self)#Not using
+      #  self.infection_length = QLineEdit("")
+#        self.editable.append(self.infection_length)
         self.exposure_label = QLabel("Exposure length(Days)", self)
         self.exposure = QLineEdit("")
         self.editable.append(self.exposure)
@@ -53,6 +57,9 @@ class Form(QDialog):
         self.workplace_label = QLabel("Proportion of workplaces(%)")
         self.prop_workplace = QSpinBox()
         self.prop_workplace.setRange(0, 100)
+        self.hub_label = QLabel("Proportion of Hubs(%)")
+        self.prop_hub = QSpinBox()
+        self.prop_hub.setRange(0, 100)
         #self.prop_school.setSingleStep(0.01)
 
 
@@ -66,18 +73,20 @@ class Form(QDialog):
         layout.setSpacing(10)
         layout.addWidget(self.agent,1,0)
         layout.addWidget(self.numb_agent,1,1,1,1)
-        layout.addWidget(self.student_prop_label, 3, 2)
-        layout.addWidget(self.student_prop,3,3,1,1)
-        layout.addWidget(self.worker_prop_label, 4, 2)
-        layout.addWidget(self.worker_prop,4,3,1,1)
-        layout.addWidget(self.retire_prop_label, 5, 2)
-        layout.addWidget(self.retire_prop,5,3,1,1)
-        layout.addWidget(self.school_label,6,2)
-        layout.addWidget(self.prop_school,6,3,1,1)
-        layout.addWidget(self.workplace_label, 7, 2)
-        layout.addWidget(self.prop_workplace, 7, 3, 1, 1)
-        layout.addWidget(self.home_label, 8, 2)
-        layout.addWidget(self.prop_home, 8, 3, 1, 1)
+        layout.addWidget(self.student_prop_label, 1, 2)
+        layout.addWidget(self.student_prop,1,3,1,1)
+        layout.addWidget(self.worker_prop_label, 2, 2)
+        layout.addWidget(self.worker_prop,2,3,1,1)
+        layout.addWidget(self.retire_prop_label, 3, 2)
+        layout.addWidget(self.retire_prop,3,3,1,1)
+        layout.addWidget(self.school_label,4,2)
+        layout.addWidget(self.prop_school,4,3,1,1)
+        layout.addWidget(self.workplace_label, 5, 2)
+        layout.addWidget(self.prop_workplace, 5, 3, 1, 1)
+        layout.addWidget(self.home_label, 6, 2)
+        layout.addWidget(self.prop_home, 6, 3, 1, 1)
+        layout.addWidget(self.hub_label, 7, 2)
+        layout.addWidget(self.prop_hub, 7, 3, 1, 1)
 
 
 
@@ -88,8 +97,8 @@ class Form(QDialog):
         layout.addWidget(self.height,3,1,1,1)
         layout.addWidget(self.infection_label, 4, 0)
         layout.addWidget(self.infection,4,1,1,1)
-        layout.addWidget(self.infection_length_label, 5, 0)
-        layout.addWidget(self.infection_length,5,1,1,1)
+    #    layout.addWidget(self.infection_length_label, 5, 0)
+    #    layout.addWidget(self.infection_length,5,1,1,1)
         layout.addWidget(self.exposure_label, 6, 0)
         layout.addWidget(self.exposure,6,1,1,1)
         layout.addWidget(self.recover_label, 7, 0)
@@ -111,161 +120,192 @@ class Form(QDialog):
 
     def load_config(self):
         self.file = QFileDialog.getOpenFileName(self, 'Open configuration file')
-        file_open=open(self.file[0],'r')
-        parameters=["numb_agents","prop_student","prop_worker","prop_retiree","width","height","expose_time","infect_time"]
-        parameter={}
-        stations={}
-        homes=[]
-        workplaces=[]
-        schools=[]
-        shops=[]
-        entertain=[]
-        connected={}
-        self.homecapacity={}
-        self.schoolcapacity={}
-        self.workplacecapacity={}
-        self.shopcapacity={}
-        self.entertaincapacity={}
-        self.setEnvironment=True
+        if Validate(self.file):
+            file_open=open(self.file[0],'r')
+          #  parameters=["numb_agents","prop_student","prop_worker","prop_retiree","width","height","expose_time","infect_time"]
+            parameters=[]
+            parameter={}
+            stations={}
+            homes=[]
+            workplaces=[]
+            schools=[]
+            shops=[]
+            entertain=[]
+            connected={}
+            self.homecapacity={}
+            self.schoolcapacity={}
+            self.workplacecapacity={}
+            self.shopcapacity={}
+            self.entertaincapacity={}
+            self.setEnvironment=True
 
-
-        line_count=0
-        with file_open:
-            text = file_open.read()
-            text=text.split("\n")
-            for line in text:
-                print(line)
-                line_count+=1
-                print(line_count)
-                if line_count==1:
-                    parameters = ["numb_agents", "prop_student", "prop_worker", "prop_retiree"]
+            line_count=0
+            with file_open:
+                text = file_open.read()
+                text=text.split("\n")
+                for line in text:
+                    print(line)
+                    line_count+=1
+                    print(line_count)
                     t=line.split(",")
-                    print(t)
-                    for i in range(len(parameters)):
-                        print(t[i])
-                        parameter[parameters[i]]=t[i]
-                        #print(t[i])
-                    self.numb_agent.setText(parameter["numb_agents"])
-                    self.student_prop.setText(parameter["prop_student"])
-                    self.worker_prop.setText(parameter["prop_worker"])
-                    self.retire_prop.setText(parameter["prop_retiree"])
+                    if t[0]=="Agent Pop":
+                        parameters = ["numb_agents", "prop_student", "prop_worker", "prop_retiree"]
+                        t=t[1:]
+                        print(t)
+                        for i in range(len(parameters)):
+                            print(t[i])
+                            parameter[parameters[i]]=t[i]
+                            #print(t[i])
+                        self.numb_agent.setText(parameter["numb_agents"])
+                        self.student_prop.setText(parameter["prop_student"])
+                        self.worker_prop.setText(parameter["prop_worker"])
+                        self.retire_prop.setText(parameter["prop_retiree"])
 
-                elif line_count==2:
-                    parameters = ["width","height","expose_time","infect_time","recover_time","infect_rate","port"]
-                    t = line.split(",")
-                    for i in range(len(parameters)):
-                        parameter[parameters[i]] = t[i]
-                        print(parameter[parameters[i]])
-                    self.width.setText(parameter["width"])
-                    self.height.setText(parameter["height"])
-                    self.exposure.setText(parameter["expose_time"])
-                    self.infection_length.setText(parameter["infect_time"])
-                    self.infection.setText(parameter["infect_rate"])
-                    self.recover.setText(parameter["recover_time"])
-                    self.port.setText(parameter["port"])
-                else:
-                    #print(text)
-                    t=line.split(",")
-                    print(t[0])
-                    if t[0] == "House":
-                        house_info=t
-                        house_coord=house_info[1].split(" ")
-                        house_coord=(int(house_coord[0]),int(house_coord[1]))
-                        print(house_coord)
-                        house_id=house_info[2]
-                        house_capacity=house_info[3]
-                        homes.append((int(house_coord[0]),int(house_coord[1])))
-                        print(homes)
-                        self.homecapacity[house_coord]=house_capacity
-                        print(self.homecapacity[house_coord])
-                       # print(house_capacity)
+                    elif t[0]=="Model":
+                        parameters = ["width","height","expose_time","recover_time","infect_rate","port"]
+                        t =t[1:]
+                        for i in range(len(parameters)):
+                            parameter[parameters[i]] = t[i]
+                            print(parameter[parameters[i]])
+                        self.width.setText(parameter["width"])
+                        self.height.setText(parameter["height"])
+                        self.exposure.setText(parameter["expose_time"])
+                        #self.infection_length.setText(parameter["infect_time"])
+                        self.infection.setText(parameter["infect_rate"])
+                        self.recover.setText(parameter["recover_time"])
+                        self.port.setText(parameter["port"])
+                    else:
+                        #print(text)
+                        t=line.split(",")
+                        print(t[0])
+                        if t[0] == "House":
+                            house_info=t
+                            house_id=house_info[1]
+                            house_coord=house_info[2].split(" ")
+                            house_coord=(int(house_coord[0]),int(house_coord[1]))
+                            print(house_coord)
+                            house_capacity=house_info[3]
+                            homes.append((int(house_coord[0]),int(house_coord[1])))
+                            print(homes)
+                            self.homecapacity[house_coord]=house_capacity
+                            print(self.homecapacity[house_coord])
+                           # print(house_capacity)
 
-                    elif t[0]=="Rail":
-                        #print("hub!")
-                        #station_info=t[1].split(" ")
-                        station_id=t[1]
-                        print(station_id)
-                        station_coords=t[2].split(" ")
-                        station_coord=(station_coords[0],station_coords[1])
-                       # print(station_coord)
-                        station_connected=t[3]
-                        stations[station_id]=station_coord
-                        connected[station_id]=station_connected
-                      #  print(station_connected)
-                      #  for s in station_connected:
-                      #      print ("c"+str(s))
-                    elif t[0]=="School":
-                        school_info = t[1].split(" ")
-                        school_coord = (int(school_info[0]),int(school_info[1]))
-                        print(school_coord)
-                        school_id = t[2]
-                        school_capacity = t[3]
-                        schools.append(school_coord)
-                        self.schoolcapacity[school_coord]=school_capacity
-                        print( self.schoolcapacity[school_coord])
-                    elif t[0]=="Workplace":
-                        workplace_info = t[1].split(" ")
-                        workplace_coord = (int(workplace_info[0]),int(workplace_info[1]))
-                        workplace_id = t[2]
-                        workplace_capacity = t[3]
-                        workplaces.append(workplace_coord)
-                        self.workplacecapacity[workplace_coord]=workplace_capacity
-                    elif t[0] == "Shop":
-                        shop_info = t[1].split(" ")
-                        shop_coord = (int(shop_info[0]), int(shop_info[1]))
-                        shop_id = t[2]
-                        shop_capacity = t[3]
-                        shops.append(shop_coord)
-                        self.shopcapacity[shop_coord] = shop_capacity
-                    elif t[0] == "Entertain":
-                        entertain_info = t[1].split(" ")
-                        entertain_coord = (int(entertain_info[0]), int(entertain_info[1]))
-                        entertain_id = t[2]
-                        entertain_capacity = t[3]
-                        entertain.append(entertain_coord)
-                        self.entertaincapacity[entertain_coord] = entertain_capacity
+                        elif t[0]=="Rail":
+                            #print("hub!")
+                            #station_info=t[1].split(" ")
+                            station_id=t[1]
+                            print(station_id)
+                            station_coords=t[2].split(" ")
+                            station_coord=(station_coords[0],station_coords[1])
+                           # print(station_coord)
+                            station_connected=t[3]
+                            stations[station_id]=station_coord
+                            connected[station_id]=station_connected
+                          #  print(station_connected)
+                          #  for s in station_connected:
+                          #      print ("c"+str(s))
+                        elif t[0]=="School":
+                            school_id = t[1]
+                            school_info = t[2].split(" ")
+                            school_coord = (int(school_info[0]),int(school_info[1]))
+                            print(school_coord)
+                            school_capacity = t[3]
+                            schools.append(school_coord)
+                            self.schoolcapacity[school_coord]=school_capacity
+                            print( self.schoolcapacity[school_coord])
+                        elif t[0]=="Workplace":
+                            workplace_id = t[1]
+                            workplace_info = t[2].split(" ")
+                            workplace_coord = (int(workplace_info[0]),int(workplace_info[1]))
+                            workplace_capacity = t[3]
+                            workplaces.append(workplace_coord)
+                            self.workplacecapacity[workplace_coord]=workplace_capacity
+                        elif t[0] == "Shop":
+                            shop_id = t[1]
+                            shop_info = t[2].split(" ")
+                            shop_coord = (int(shop_info[0]), int(shop_info[1]))
+                            shop_capacity = t[3]
+                            shops.append(shop_coord)
+                            self.shopcapacity[shop_coord] = shop_capacity
+                        elif t[0] == "Entertain":
+                            entertain_id = t[1]
+                            entertain_info = t[2].split(" ")
+                            entertain_coord = (int(entertain_info[0]), int(entertain_info[1]))
+                            entertain_capacity = t[3]
+                            entertain.append(entertain_coord)
+                            self.entertaincapacity[entertain_coord] = entertain_capacity
 
 
 
-        self.hubs={}
-        print(connected.keys())
-        for k in connected.keys():
-            key=stations[k]
-            print("Key:"+str(key))
-            connect=connected[k].split(" ")
-            print(connect)
-            to_add=[]
-            for c in connect:
-                print("C:"+str(c))
-            for c in connect:
-                #c=connect[j]
-                print(c)
-                print(stations[c])
-                to_add.append(stations[c])
-                #if key in self.hubs:
-                 #   self.hubs[key]=self.hubs[key].append(stations[c])
-                #else:
-                 #   self.hubs[key]=[stations[c]]
-            self.hubs[key]=to_add
-            print(self.hubs[key])
-        #self.hubs=hubs
-        self.homes=homes
-        print("H:"+str(self.homes))
-        print("H1:"+str(self.homecapacity.keys()))
-        self.workplaces=workplaces
-        self.schools=schools
-        self.shops=shops
-        self.entertain=entertain
-        for e in self.editable:
-            e.setReadOnly(True)
-            #e.setText("L")
+            self.hubs={}
+            print(connected.keys())
+            for k in connected.keys():
+                key=stations[k]
+                print("Key:"+str(key))
+                connect=connected[k].split(" ")
+                print(connect)
+                to_add=[]
+                for c in connect:
+                    print("C:"+str(c))
+                for c in connect:
+                    #c=connect[j]
+                    print(c)
+                    print(stations[c])
+                    to_add.append(stations[c])
+                    #if key in self.hubs:
+                     #   self.hubs[key]=self.hubs[key].append(stations[c])
+                    #else:
+                     #   self.hubs[key]=[stations[c]]
+                self.hubs[key]=to_add
+                print(self.hubs[key])
+            #self.hubs=hubs
+            self.homes=homes
+          #  print("H:"+str(self.homes))
+         #   print("H1:"+str(self.homecapacity.keys()))
+            self.workplaces=workplaces
+            self.schools=schools
+            self.shops=shops
+            self.entertain=entertain
+            for e in self.editable:
+                e.setReadOnly(True)
+                #e.setText("L")
+        else:
+            error_message = QErrorMessage(self)
+            error_message.setWindowTitle("File Error")
+            error_message.showMessage("File is not formatted correctly")
 
-   # def verify_config(self,parameters):
+    def verify_config(self):
+       agent_numb=isinstance(int(self.numb_agent.text()),int)
+       print("testing width")
+       width=isinstance(int(self.width.text()),int)
+       height=isinstance(int(self.height.text()),int)
+       if float(self.infection.text())<=1:
+           infect=True
+       else:
+           infect=False
+       exposure=isinstance(int(self.exposure.text()),int)
+       print("Exposure")
+       recover=isinstance(int(self.recover.text()),int)
+       print("Recover")
+       port=isinstance(int(self.port.text()),int)
+       print("Port")
+       if float(self.student_prop.text())+float(self.worker_prop.text())+float(self.retire_prop.text())!=1:
+           proportions=False
+       else:
+           proportions=True
+           print("Proportions")
+       return agent_numb and width and height and infect and exposure and recover and port and proportions
+
+
+
+
+
 
     def create_Random_simulation(self):
         ran_width=random.randrange(10,40)
         ran_height=random.randrange(10,40)
-        ran_agent_num=random.randrange(10,1000)
+        ran_agent_num=random.uniform(10,1000)
         ran_exposure=random.uniform(0.5,3)
         ran_recover=random.uniform(3,9)
         ran_infect=random.randrange(0,1)
@@ -360,14 +400,22 @@ class Form(QDialog):
     # Greets the user
     def server(self):
         if not self.setEnvironment:
-            #self.hubs=
-            pass
-        Server=create_server(int(self.numb_agent.text()),int(self.width.text()),int(self.height.text()),int(self.exposure.text()),int(self.recover.text()),float(self.infection.text()),
-                             float(self.worker_prop.text()),float(self.student_prop.text()),float(self.retire_prop.text()),self.hubs,self.homes,self.schools,self.workplaces,
-                             self.homecapacity,self.schoolcapacity,self.workplacecapacity)
-        Server.port = int(self.port.text()) # The default
-        Server.launch()
-        print("Launched!")
+            self.hubs=self.CreateRandomHubs(float(self.prop_hub.text()/100),self.width.text(),self.height.text())
+            self.homes,self.homecapacity=self.CreateRandomEnvironment(self.numb_agent.text(),self.prop_home.text(),self.width.text(),self.height.text())
+            self.schools,self.schoolcapacity=self.CreateRandomEnvironment(self.numb_agent.text(),self.prop_school.text(),self.width.text(),self.height.text())
+            self.workplaces,self.workplacecapacity=self.CreateRandomEnvironment(self.numb_agent.text(),self.prop_workplace.text(),self.width.text(),self.height.text())
+
+        if self.verify_config():
+            Server=create_server(int(self.numb_agent.text()),int(self.width.text()),int(self.height.text()),int(self.exposure.text()),int(self.recover.text()),float(self.infection.text()),
+                                 float(self.worker_prop.text()),float(self.student_prop.text()),float(self.retire_prop.text()),self.hubs,self.homes,self.schools,self.workplaces,
+                                 self.homecapacity,self.schoolcapacity,self.workplacecapacity)
+            Server.port = int(self.port.text()) # The default
+            Server.launch()
+            print("Launched!")
+        else:
+            error_message = QErrorMessage(self)
+            error_message.setWindowTitle("Config Error")
+            error_message.showMessage("Invalid Config")
 
 if __name__ == '__main__':
     # Create the Qt Application

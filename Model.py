@@ -25,8 +25,8 @@ class Model(Model):
     def __init__(self, N, width, height,expose,recover,rate,prop1=0.2,prop2=0.3,prop3=0.5,hubs={},homes=[(0,0)],schools=[(0,0)],workplaces=[(0,0)],home_max={},school_max={},work_max={},blocked_cells=[]):
         self.num_agents = N
         self.grid = MultiGrid(width, height, False)
-        print(str(width)+":"+str(height))
-        print(prop1)
+     #   print(str(width)+":"+str(height))
+     #   print(prop1)
         self.schedule = BaseScheduler(self)
         self.running = True
         self.expose=expose*96
@@ -45,7 +45,7 @@ class Model(Model):
         for i in range(width):
             for j in range(height):
                 self.graph.add_node((i,j))
-                print(str(i)+":"+str(j))
+              #  print(str(i)+":"+str(j))
                 if i==0:
                     if j==0:
                         self.graph.add_edge((i, j), (i + 1, j), weight=5)
@@ -112,15 +112,8 @@ class Model(Model):
                         self.graph.add_edge((i,j),(i-1,j-1),weight=5)
                         self.graph.add_edge((i,j),(i+1,j-1),weight=5)
                         self.graph.add_edge((i,j),(i+1,j+1),weight=5)
-            print(self.graph.edges)
-        print(self.graph.nodes)
-
-
-
-
-
-
-
+       #     print(self.graph.edges)
+      #  print(self.graph.nodes)
 
           #      self.graph.add_edge()
         #Add neighbours
@@ -143,25 +136,25 @@ class Model(Model):
              #       pass
               #  print(hub[h])
         for h in self.stations.keys():
-            print(h)
-            print(self.stations[h])
+          #  print(h)
+         #   print(self.stations[h])
             co=[]
             for x in h:
                 co.append(int(x))
-            print(co)
+          #  print(co)
             for r in self.stations[h]:
                 self.graph.add_edge((co[0],co[1]),r,weight=2)
             self.grid.place_agent(StationaryAgent("Rail"), co)
-        print("Stations: "+str(self.stations.keys()))
+        #print("Stations: "+str(self.stations.keys()))
         #create homes
         self.homes=homes
         self.home_current_capacity={}
        # self.home_max_capacity=home_max
         self.home_max_capacity={}
-        for h in home_max.keys():
-            print("KeyH:"+str(h))
+       # for h in home_max.keys():
+         #   print("KeyH:"+str(h))
         for h in homes:
-            print("Home:"+str(h))
+          #  print("Home:"+str(h))
             self.grid.place_agent(StationaryAgent("Home"), h)
             self.home_current_capacity[h]=0
             self.home_max_capacity[h]=home_max[h]
@@ -172,7 +165,7 @@ class Model(Model):
         self.school_max_capacity={}
 
         for s in schools:
-            print("School:"+str(s))
+          #  print("School:"+str(s))
             self.grid.place_agent(StationaryAgent("School"), s)
             self.school_current_capacity[s]=0
             self.school_max_capacity[s]=school_max[s]
@@ -183,7 +176,7 @@ class Model(Model):
         self.workplace_max_capacity={}
 
         for w in workplaces:
-            print("Workplace:"+str(w))
+       #     print("Workplace:"+str(w))
             self.grid.place_agent(StationaryAgent("Workplace"), w)
             self.workplace_current_capacity[w]=0
             self.workplace_max_capacity[w]=work_max[w]
@@ -196,7 +189,7 @@ class Model(Model):
         self.shop_max_capacity={}
         self.shop_current_capacity = {}
         for s in self.shops:
-            self.grid.place_agent(StationaryAgent("Shop"), s)
+          #  self.grid.place_agent(StationaryAgent("Shop"), s)
             self.shop_current_capacity[s] = 0
             self.shop_max_capacity[s] = 300000000 #Test value
 
@@ -205,7 +198,7 @@ class Model(Model):
         self.entertain_max_capacity = {}
         self.entertain_current_capacity = {}
         for e in self.entertain:
-            self.grid.place_agent(StationaryAgent("Entertain"),e)
+         #   self.grid.place_agent(StationaryAgent("Entertain"),e)
             self.entertain_current_capacity[e] = 0
             self.entertain_max_capacity[e] = 30000000 #Test value
 
@@ -214,30 +207,32 @@ class Model(Model):
         stage=1
         agent_id=0
         for p in self.agentprop:
-            print("P:"+str(p))
-            print("stage:"+str(stage))
+          #  print("P:"+str(p))
+          #  print("stage:"+str(stage))
             for i in range(int(p)):
                 # Add the agent to a random grid cell
                 x = random.randrange(self.grid.width)
                 y = random.randrange(self.grid.height)
                 #Place everyone in their own homes
                 if stage==1:
-                    print("Worker")
+                #    print("Worker")
                     a = Worker(agent_id, self,self.expose,self.recover,self.infection_rate,x,y)
                 elif stage==2:
-                    print("Student")
+                  #  print("Student")
                     a= Student(agent_id, self,self.expose,self.recover,self.infection_rate,x,y)
                 elif stage==3:
-                    print("Retire")
+                   # print("Retire")
                     a=Retiree(agent_id, self,self.expose,self.recover,self.infection_rate,x,y)
                 a.x, a.y = a.places[0][1]
                 self.schedule.add(a)
                 self.grid.place_agent(a, (int(a.x), int(a.y)))
-                print("Loc:"+str(a.x)+":"+str(a.y))
+               # print("Loc:"+str(a.x)+":"+str(a.y))
                 agent_id+=1
+            #if agent_id%100==0:
+                print(str(agent_id)+" agents generated")
 
             stage+=1
-        print("Created agents")
+       # print("Created agents")
 
         #Change later
         self.datacollector = DataCollector(

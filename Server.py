@@ -1,11 +1,32 @@
 from Model import Model,Person,StationaryAgent
 import numpy as np
-import matplotlib.pyplot as plt
-from mesa.visualization.modules import CanvasGrid, ChartModule
+import matplotlib.backends.backend_tkagg
+from mesa.visualization.modules import CanvasGrid, ChartModule,TextElement
 from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.UserParam import UserSettableParameter
+import os
 
+package_dir = os.path.dirname(os.path.abspath(__file__))
+#thefile = os.path.join(package_dir,'test.cvs')
 Colors = {"Healthy": "#66cd00", "Exposed": "#ffd700", "Infected": "#b22222", "Recovered": "#9932cc"}
+Places_To_Icons={"School":"Icons/school.png","Workplaces":"Icons/office.png","Homes":"Icons/home.png","Transport Hubs":"Icons/train.png"}
+class Legend(TextElement):
+    def render(self, model):
+       # ratio = model.resistant_susceptible_ratio()
+        #ratio_text = '&infin;' if ratio is math.inf else '{0:.2f}'.format(ratio)
+        #infected_text = str(number_infected(model))
+        out=["<div> Legend: </div>"]
+        places=Places_To_Icons.keys()
+        for p in places:
+            out.append("<div><img src={} width=20 height=20>:{} </div>".format("local/"+str(Places_To_Icons[p]),str(p)))
+        out.append("<div> Agent States:")
+        for c in Colors.keys():
+           out.append(" <h4 style=\"color:{};\"> {}</h4> ".format(Colors[c],str(c)))
+
+        out.append("</div>")
+
+        return out
+
 
 def create_server(numb_agents,width,height,expose,recover,rate,prop_worker,prop_student,prop_retire,hubs,homes,schools,workplaces,
                   home_capacity,school_capacity,work_capacity):
@@ -14,7 +35,7 @@ def create_server(numb_agents,width,height,expose,recover,rate,prop_worker,prop_
     chart_element = ChartModule([{"Label": label, "Color": color} for (label, color) in Colors.items()])
 
     server = ModularServer(Model,
-                           [grid, chart_element],
+                           [grid, Legend(),chart_element],
                           # [grid],
                            "Disease Model",
                            {"N": numb_agents,
@@ -93,16 +114,16 @@ def agent_portrayal(agent):
                      }
         if agent.type is "Rail":
                 portrayal["Color"]="green"
-                portrayal["Shape"] = "train.png"
+                portrayal["Shape"] = Places_To_Icons["Transport Hubs"]
         elif agent.type is "Home":
             portrayal["Color"] = "blue"
-            portrayal["Shape"]="home.png"
+            portrayal["Shape"]=Places_To_Icons["Homes"]
         elif agent.type is "Workplace":
             portrayal["Color"] = "purple"
-            portrayal["Shape"]="office.png"
+            portrayal["Shape"]=Places_To_Icons["Workplaces"]
         elif agent.type is "School":
             portrayal["Color"] = "cyan"
-            portrayal["Shape"]="school.png"
+            portrayal["Shape"]=Places_To_Icons["School"]
         #elif agent.type is "Venue":
         #elif agent.type is "Shop":
 

@@ -272,21 +272,21 @@ class Person(Agent):
         prob_shop = 0.5  # base
         self.path={}
         #Weekdays
-        print("Weekdays")
+        #print("Weekdays")
         self.weekday=self.GenerateDailySchedule()
-        print("Weekdays1")
+       # print("Weekdays1")
         for i in range(5):
             #self.path.append([])
             self.places[i]=(self.weekday)
             self.leavetimes[i]=(self.GenerateLeaveTimesWeekDay())
-            print("New leavetimes:"+str(self.leavetimes))
+          #  print("New leavetimes:"+str(self.leavetimes))
             self.Create_paths(i)
             self.stay_times[i]=self.GenerateStayTimesWeek()
             #self.path[i]=[]
             #self.path[i].append()
 
 
-        print("Weekends")
+     #   print("Weekends")
         #weekends
         for j in range(2):
             #If going out all day
@@ -328,7 +328,7 @@ class Person(Agent):
 
     def Create_paths(self,day):
         #self.path[day]=[]
-        print(self.places[day])
+      #  print(self.places[day])
         to_add=[]
         for p in range(len(self.places[day])):
             if p>0:
@@ -342,7 +342,7 @@ class Person(Agent):
                 else:
                     to_add.append(nx.shortest_path(self.model.graph,source=(self.places[day-1][-1]),target=self.places[day][p],weight="weight"))
         self.path[day]=list(to_add)
-        print("Paths:"+str(self.path[day]))
+        #print("Paths:"+str(self.path[day]))
 
     def GenerateLeaveTimesWeekEnd(self, i):
         times = [random.randrange(8, 10), random.randrange(13, 15), random.randrange(17, 22)]
