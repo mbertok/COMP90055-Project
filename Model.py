@@ -22,7 +22,8 @@ def compute_gini(model):
 
 class Model(Model):
     """A model with some number of agents."""
-    def __init__(self, N, width, height,expose,recover,rate,prop1=0.2,prop2=0.3,prop3=0.5,hubs={},homes=[(0,0)],schools=[(0,0)],workplaces=[(0,0)],home_max={},school_max={},work_max={},blocked_cells=[]):
+    def __init__(self, N, width, height,expose,recover,rate,prop1=0.2,prop2=0.3,prop3=0.5,hubs={},homes=[(0,0)],schools=[(0,0)],workplaces=[(0,0)],home_max={},school_max={},work_max={},
+                 entertain=[(0,0)],shops=[(0,0)],infect_agent_station=[],infect_agent_move=[],preventative_measures_active=False,stage_thresholds=[],vacc_rate=0.0):
         self.num_agents = N
         self.grid = MultiGrid(width, height, False)
      #   print(str(width)+":"+str(height))
@@ -38,8 +39,17 @@ class Model(Model):
         self.quarter=0
         self.traindelayprob=0.0#Change from hardcode later
         self.time=96#15 minute intervals
-        for i in range(len(blocked_cells)):
-            self.restricted.append((blocked_cells[0],blocked_cells[1]))
+        self.preventative_measures_active=preventative_measures_active
+        self.vaccination=False
+        self.entertain_lockdown=False
+        self.school_lockdown=False
+        self.stage_thresholds=stage_thresholds
+        self.preventative_stage=-1
+        self.vacc_rate=vacc_rate
+
+
+       # for i in range(len(blocked_cells)):
+       #     self.restricted.append((blocked_cells[0],blocked_cells[1]))
         #Create graph of grid
         self.graph=nx.Graph()
         for i in range(width):
@@ -50,64 +60,50 @@ class Model(Model):
                     if j==0:
                         self.graph.add_edge((i, j), (i + 1, j), weight=5)
                         self.graph.add_edge((i, j), (i, j + 1), weight=5)
-
-
-
                         self.graph.add_edge((i, j), (i + 1, j + 1), weight=5)
-
-
                     elif j==height-1:
-
                         self.graph.add_edge((i, j), (i, j - 1), weight=5)
-
                         self.graph.add_edge((i, j), (i + 1, j), weight=5)
-
                         self.graph.add_edge((i, j), (i + 1, j - 1), weight=5)
-
-
+                    else:
+                        self.graph.add_edge((i, j), (i, j - 1), weight=5)
+                        self.graph.add_edge((i, j), (i + 1, j), weight=5)
+                        self.graph.add_edge((i, j), (i, j + 1), weight=5)
+                        self.graph.add_edge((i, j), (i + 1, j - 1), weight=5)
+                        self.graph.add_edge((i, j), (i + 1, j + 1), weight=5)
                 elif i==width-1:
                     if j==0:
                         self.graph.add_edge((i, j), (i - 1, j), weight=5)
-
-
                         self.graph.add_edge((i, j), (i, j + 1), weight=5)
-
                         self.graph.add_edge((i, j), (i - 1, j + 1), weight=5)
-
-
                     elif j==height-1:
                         self.graph.add_edge((i, j), (i - 1, j), weight=5)
                         self.graph.add_edge((i, j), (i, j - 1), weight=5)
-
                         self.graph.add_edge((i, j), (i - 1, j - 1), weight=5)
-
+                    else:
+                        self.graph.add_edge((i, j), (i - 1, j), weight=5)
+                        self.graph.add_edge((i, j), (i, j - 1), weight=5)
+                        self.graph.add_edge((i, j), (i, j + 1), weight=5)
+                        self.graph.add_edge((i, j), (i - 1, j + 1), weight=5)
+                        self.graph.add_edge((i, j), (i - 1, j - 1), weight=5)
                 else:
                     if j==0:
                         self.graph.add_edge((i, j), (i - 1, j), weight=5)
-
-
                         self.graph.add_edge((i, j), (i + 1, j), weight=5)
                         self.graph.add_edge((i, j), (i, j + 1), weight=5)
-
                         self.graph.add_edge((i, j), (i - 1, j + 1), weight=5)
-
                         self.graph.add_edge((i, j), (i + 1, j + 1), weight=5)
                     elif j==height-1:
                         self.graph.add_edge((i, j), (i - 1, j), weight=5)
                         self.graph.add_edge((i, j), (i, j - 1), weight=5)
-
                         self.graph.add_edge((i, j), (i + 1, j), weight=5)
-
                         self.graph.add_edge((i, j), (i - 1, j - 1), weight=5)
                         self.graph.add_edge((i, j), (i + 1, j - 1), weight=5)
-
                     else:
                         self.graph.add_edge((i,j),(i-1,j),weight=5)
                         self.graph.add_edge((i,j),(i,j-1),weight=5)
-
                         self.graph.add_edge((i,j),(i+1,j),weight=5)
                         self.graph.add_edge((i,j),(i,j+1),weight=5)
-
                         self.graph.add_edge((i,j),(i-1,j+1),weight=5)
                         self.graph.add_edge((i,j),(i-1,j-1),weight=5)
                         self.graph.add_edge((i,j),(i+1,j-1),weight=5)
@@ -185,23 +181,28 @@ class Model(Model):
         print(sum_prop)
 
         #Test code
-        self.shops=[(0,0),(10,10)]#change later
+        self.shops=shops
         self.shop_max_capacity={}
         self.shop_current_capacity = {}
         for s in self.shops:
-          #  self.grid.place_agent(StationaryAgent("Shop"), s)
+            self.grid.place_agent(StationaryAgent("Shop"), s)
             self.shop_current_capacity[s] = 0
-            self.shop_max_capacity[s] = 300000000 #Test value
+            self.shop_max_capacity[s] = self.num_agents*2 #Test value
 
 
-        self.entertain=[(5,5),(6,6)]
+        self.entertain=entertain
         self.entertain_max_capacity = {}
         self.entertain_current_capacity = {}
         for e in self.entertain:
-         #   self.grid.place_agent(StationaryAgent("Entertain"),e)
+            self.grid.place_agent(StationaryAgent("Entertain"),e)
             self.entertain_current_capacity[e] = 0
-            self.entertain_max_capacity[e] = 30000000 #Test value
+            self.entertain_max_capacity[e] = self.num_agents*2 #Test value
 
+
+        if len(infect_agent_move)==0 and len(infect_agent_station)==0:
+            self.initial_infected=True
+        else:
+            self.initial_infected=False
 
         self.agentprop=[N*(prop1/sum_prop),N*(prop2/sum_prop),N*(prop3/sum_prop)]
         stage=1
@@ -216,13 +217,13 @@ class Model(Model):
                 #Place everyone in their own homes
                 if stage==1:
                 #    print("Worker")
-                    a = Worker(agent_id, self,self.expose,self.recover,self.infection_rate,x,y)
+                    a = Worker(agent_id, self,expose,recover,self.infection_rate,x,y,self.initial_infected)
                 elif stage==2:
                   #  print("Student")
-                    a= Student(agent_id, self,self.expose,self.recover,self.infection_rate,x,y)
+                    a= Student(agent_id, self,expose,recover,self.infection_rate,x,y,self.initial_infected)
                 elif stage==3:
                    # print("Retire")
-                    a=Retiree(agent_id, self,self.expose,self.recover,self.infection_rate,x,y)
+                    a=Retiree(agent_id, self,expose,recover,self.infection_rate,x,y,self.initial_infected)
                 a.x, a.y = a.places[0][1]
                 self.schedule.add(a)
                 self.grid.place_agent(a, (int(a.x), int(a.y)))
@@ -233,6 +234,22 @@ class Model(Model):
 
             stage+=1
        # print("Created agents")
+        if not self.initial_infected:
+            for s1,s2 in infect_agent_station:
+                # Add the agent to a random grid cell
+                x = random.randrange(self.grid.width)
+                y = random.randrange(self.grid.height)
+                #create Agent
+                #Add to scheduler
+                agent_id+=1
+            for m1,m2 in infect_agent_move:
+                # Add the agent to a random grid cell
+                x = random.randrange(self.grid.width)
+                y = random.randrange(self.grid.height)
+                # create Agent
+                # Add to scheduler
+                agent_id+=1
+
 
         #Change later
         self.datacollector = DataCollector(
@@ -257,6 +274,27 @@ class Model(Model):
         if self.hour>23:
             self.hour=0
             self.day+=1
+        if self.preventative_measures_active:
+            print(self.preventative_stage)
+            if self.preventative_stage<len(self.stage_thresholds)-1:
+                #check proportion
+                if float(self.count_type(self,3)/self.num_agents)>float(self.stage_thresholds[self.preventative_stage+1]):
+                #increment stage
+                    self.preventative_stage+=1
+                    if self.preventative_stage==1:
+                        try:
+                            #Get random agents to vaccinate
+                            agents=[agent for agent in self.schedule.agents if (not agent.vaccinated) and agent.stage==1 and agent.staying]
+                            agents_to_vaccinate=random.sample(agents,int(self.vacc_rate))
+                            for a in agents_to_vaccinate:
+                                a.vaccinate()
+                        except:
+                            pass
+                    if self.preventative_stage==2:
+                        self.entertain_lockdown=True
+                    if self.preventative_stage==1==3:
+                        self.school_lockdown=True
+
 
         self.schedule.step()
     #def count(self):

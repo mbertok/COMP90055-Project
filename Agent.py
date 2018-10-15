@@ -4,6 +4,9 @@ import random
 import secrets
 from Model import Model
 import networkx as nx
+from scipy.stats import truncnorm
+import numpy
+
 
 
 
@@ -31,18 +34,25 @@ class StationaryAgent(Agent):
 
 class Person(Agent):
     """ An agent with fixed initial wealth."""
-    def __init__(self, unique_id, model,exposed_length,recovery_time,rate,x,y):
+    def __init__(self, unique_id, model,exposed_length,recovery_time,rate,x,y,initial_infection):
         super().__init__(unique_id, model)
-        infected = random.choice([True, False])
+        if initial_infection:
+            infected = random.choice([True, False])
+        else:
+            infected=False
         self.destination=(self.model.grid.width-1,self.model.grid.height-1)
         if infected:
             self.stage=2
         else:
             self.stage=1
-        self.exposure_threshold=exposed_length
+        exposed_length=exposed_length/96
+        exposure_dist=truncnorm( a=(1 - exposed_length) / 1, b=(10 - exposed_length) / 1,loc=exposed_length,scale=1)
+        self.exposure_threshold=int(exposure_dist.rvs(1)[0]*96)
+        print("Exposure:"+str(exposed_length))
         self.expose=0
         self.infected_length=0
-        self.recover_period=recovery_time
+        recover_dist = truncnorm(a=(1 - recovery_time) / 1, b=(10 - recovery_time) / 1, loc=recovery_time, scale=1)
+        self.recover_period = int(recover_dist.rvs(1)[0] * 96)
         self.infect_prob=rate
         self.x=x
         self.y=y
@@ -57,6 +67,7 @@ class Person(Agent):
         self.stay_time=0
         self.staying=False
         self.current_day=self.model.day
+        self.vaccinated=False
         #self.times=[1,2,3]
         #self.places=[(9,9),(2,3),(5,5)]
         #Needs to scale with grid
@@ -74,29 +85,39 @@ class Person(Agent):
         # Check schedule
         #If not staying
         if not(self.staying):
-            if self.leavetimes[self.current_day][self.stage_behaviour] <= hour or (self.step_stage!=0):
-                print("L1:" + str(self.leavetimes[self.stage_behaviour]))
-                print("Dest:" + str(self.path[self.current_day][self.stage_behaviour]))
-                print(self.stage_behaviour)
-                print(self.step_stage)
-                print(self.unique_id)
-                self.move(list(self.path[self.current_day][self.stage_behaviour][self.step_stage]))
-                self.step_stage+=1
-                if self.step_stage>=len(self.path[self.current_day][self.stage_behaviour]):
-                    self.step_stage=0
-                    self.stage_behaviour+=1
-                    self.staying = True
-                    if self.stage_behaviour>=len(self.places[self.current_day]):
-                        self.stage_behaviour=0
-                        self.current_day+=1
-                        self.current_day=self.current_day%7
-                        print("Reset"+str(self.stage_behaviour))
+                if self.leavetimes[self.current_day][self.stage_behaviour] <= hour or (self.step_stage!=0):
+                    print("L1:" + str(self.leavetimes[self.stage_behaviour]))
+                    print("Dest:" + str(self.path[self.current_day][self.stage_behaviour]))
+                    print(self.stage_behaviour)
+                    print(self.step_stage)
+                    print(self.unique_id)
+                    if self.current_day>4:
+                        if not self.model.entertain_lockdown:
+                            self.move(list(self.path[self.current_day][self.stage_behaviour][self.step_stage]))
+                    else:
+                        if self.current_day<5 and type(self) is Student:
+                            if not self.model.school_lockdown:
+                                self.move(list(self.path[self.current_day][self.stage_behaviour][self.step_stage]))
+                        else:
+                            self.move(list(self.path[self.current_day][self.stage_behaviour][self.step_stage]))
+                    self.step_stage+=1
+                    if self.step_stage>=len(self.path[self.current_day][self.stage_behaviour]):
+                        self.step_stage=0
+                        self.stage_behaviour+=1
+                        self.staying = True
+                        if self.stage_behaviour>=len(self.places[self.current_day]):
+                            self.stage_behaviour=0
+                            self.current_day+=1
+                            self.current_day=self.current_day%7
+                            print("Reset"+str(self.stage_behaviour))
         #If staying
         else:
             print("Staying")
             print(self.stay_times[self.current_day][self.stage_behaviour])
             print(self.stay_time)
             #If exceded stay_time+exceded leave time
+
+
             if self.stay_time>self.stay_times[self.current_day][self.stage_behaviour]:
                 self.staying=False
                 self.stay_time=0
@@ -211,7 +232,7 @@ class Person(Agent):
         self.model.grid.move_agent(self, next_step)
         self.x,self.y=next_step
 
-    def infect(self):
+    def infect_1(self):
         cellmates = self.model.grid.get_cell_list_contents([self.pos])
         if len(cellmates) > 1:
             other = random.choice(cellmates)
@@ -220,10 +241,50 @@ class Person(Agent):
                 if issubclass(type(c),Person):
                     print("Person!")
                     if c.stage==1:
-                        if random.random()<=self.infect_prob:
+                        chance = random.random()
+                        print("Chance:" + str(chance))
+                        if chance <= self.infect_prob:
                             c.stage = 2
                             c.expose=0
                             print("Infected!")
+    def interact(self):
+        cellmates = self.model.grid.get_cell_list_contents([self.pos])
+        cellmates=list(filter(lambda c: issubclass(type(c),Person), cellmates))
+        #remove stationary agents
+        for c in cellmates:
+            if not issubclass(type(c),Person):
+                print(type(c))
+                cellmates.remove(c)
+        numb_interactions=random.randrange(0,len(cellmates))
+        print("interactions:"+str(numb_interactions))
+#        if numb_interactions
+        for i in range(numb_interactions):
+            a=random.choice(cellmates)
+            if self.stage==1:
+                #If interacting with infected agent
+                if a.stage==3 and not(self.vaccinated):
+                    chance = numpy.random.random_sample()
+                    print("Chance:" + str(chance))
+                    print(self.model.infection_rate)
+                    if float(chance) <= self.model.infection_rate:
+                        self.stage = 2
+                        self.expose = 0
+                        print("Infected!")
+            elif self.stage==3:
+                #If interacting with healthy agent
+                if a.stage==1 and not(a.vaccinated):
+                    chance = numpy.random.random_sample()
+                    print("Chance:" + str(chance))
+                    print(self.model.infection_rate)
+                    if float(chance) <= self.model.infection_rate:
+                        a.stage = 2
+                        a.expose = 0
+                        print("Infected!")
+
+
+
+
+
 
 
 
@@ -244,8 +305,8 @@ class Person(Agent):
             pass
         print("Type:"+str(type(self)))
         self.check_routine()
-        if self.stage==3 :
-            self.infect()
+        #if self.stage==3 :
+        self.interact()
     def setLocation(self,list,curr_capacity_dict,max_capacity_dict):
         selected=False
        # print("List="+str(list))
@@ -358,14 +419,16 @@ class Person(Agent):
         for j in range(len(self.leavetimes[i+5])):
             stay_times.append(random.randrange(5,7))
         return stay_times
+    def vaccinate(self):
+        self.vaccinated=True
 
 
 
 
 
 class Worker(Person):
-     def __init__(self, unique_id, model,exposed_length,recovery_time,rate,x,y):
-         super().__init__( unique_id, model,exposed_length,recovery_time,rate,x,y)
+     def __init__(self, unique_id, model,exposed_length,recovery_time,rate,x,y,initial_infection):
+         super().__init__( unique_id, model,exposed_length,recovery_time,rate,x,y,initial_infection)
          #self.times = [random.randrange(7,9), random.randrange(7,10)]
          #self.leavetime=[random.randrange(7,9),random.randrange(15,17)]
          #home=self.setLocation(self.model.homes,self.model.home_current_capacity,self.model.home_max_capacity)
@@ -402,8 +465,8 @@ class Worker(Person):
 
 
 class Student(Person):
-    def __init__(self, unique_id, model, exposed_length, recovery_time, rate, x, y):
-        super().__init__(unique_id, model, exposed_length, recovery_time, rate, x, y)
+    def __init__(self, unique_id, model, exposed_length, recovery_time, rate, x, y,initial_infection):
+        super().__init__(unique_id, model, exposed_length, recovery_time, rate, x, y,initial_infection)
         #self.times = [random.randrange(8,9), random.randrange(5,7)]
         #self.leavetime = [random.randrange(6,9),random.randrange(15,17)]
        # home = self.setLocation(self.model.homes, self.model.home_current_capacity, self.model.home_max_capacity)
@@ -436,8 +499,8 @@ class Student(Person):
 
 
 class Retiree(Person):
-    def __init__(self, unique_id, model, exposed_length, recovery_time, rate, x, y):
-        super().__init__(unique_id, model, exposed_length, recovery_time, rate, x, y)
+    def __init__(self, unique_id, model, exposed_length, recovery_time, rate, x, y,initial_infection):
+        super().__init__(unique_id, model, exposed_length, recovery_time, rate, x, y,initial_infection)
         #self.leavetime=[0]
         #self.times = [5]
         #home = self.setLocation(self.model.homes, self.model.home_current_capacity, self.model.home_max_capacity)
@@ -472,7 +535,9 @@ class Infection_Spreader_Moving(Agent):
             for c in cellmates:
                 if type(c) is Person:
                     if c.stage == 1:
-                        if random.random() <= self.infect_prob:
+                        chance=random.random()
+                        print("Chance:"+str(chance))
+                        if chance <= self.infect_prob:
                             c.stage = 2
                             c.expose = 0
 
@@ -486,10 +551,13 @@ class Infection_Spreader_Stationary(Agent):
         self.infect()
     def infect(self):
             cellmates = self.model.grid.get_cell_list_contents([self.pos])
-            if len(cellmates) > 1:
-                for c in cellmates:
-                    if type(c) is Person:
-                        if c.stage == 1:
-                            if random.random() <= self.infect_prob:
-                                c.stage = 2
-                                c.expose = 0
+            for c in cellmates:
+                if not issubclass(c, Person):
+                    cellmates.remove(c)
+            numb_interactions = random.randrange(0, len(cellmates))
+            #        if numb_interactions
+            for i in range(numb_interactions):
+                a = random.choice(cellmates)
+                if random.random() <= self.model.infect_rate:#Include some sort of scaling by numer of cellmates
+                    a.stage = 2
+                    a.expose = 0

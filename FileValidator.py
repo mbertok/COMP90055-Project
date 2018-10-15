@@ -40,7 +40,7 @@ def Validate(file):
             print(agents_info_included)
 
         elif line[0]=="Model":
-            parameters = ["width", "height", "expose_time", "recover_time", "infect_rate", "port"]
+            parameters = ["width", "height", "expose_time", "recover_time", "infect_rate", "preventative_on"]
             #print("Checking Model parameters")
             for i in range(len(line[1:])):
                 try:
@@ -48,10 +48,26 @@ def Validate(file):
                 except IndexError:
                     return False
             if not (isinstance(int(model["width"]), int) and isinstance(int(model["height"]), int) and isinstance(int(model["width"]), int) and isinstance(int(model["expose_time"]), int)
-                    and isinstance(int(model["recover_time"]), int) and isinstance(float(model["infect_rate"]), float)and isinstance(int(model["port"]), int) ):
-                return False
+                    and isinstance(int(model["recover_time"]), int) and isinstance(float(model["infect_rate"]), float)):
+                    if not ( int(model["preventative_on"])==1 or int(model["preventative_on"])==0):
+                        return False
             model_info_included = True
             print(model_info_included)
+        elif line[0]=="Preventative":
+            if ("preventative_on" in model.keys())  :
+                thresholds=line[1:4]
+                for t in range(len(thresholds)):
+                    if not(isinstance(float(thresholds[t]),float) and float(thresholds[t])<1):
+                        return False
+                    if t<(len(thresholds)-1) and float(thresholds[t])>float(thresholds[t+1]):
+                        return False
+                print("FLoat")
+                if not(isinstance(int(line[4]),int)):
+                    return False
+                if not bool(int(model["preventative_on"])):
+                    return False
+            else:
+                return False
         elif line[0]=="Rail":
             if model_info_included:
                 #Check if within bounds
@@ -102,7 +118,10 @@ def Validate(file):
         #Ignore blank lines
         elif line[0]=="":
             pass
-        #Comments start with
+        #Comments start with #
+        elif line[0][0]=="#":
+            #print("Comment")
+            pass
         else:
             return False
 
