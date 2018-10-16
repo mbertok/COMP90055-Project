@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import  random
 import math
 import secrets
+import atexit
 import networkx as nx
 
 import random
@@ -260,6 +261,9 @@ class Model(Model):
 
          })
         print("Finished!")
+        self.output_file=open("Log.csv","w")
+        self.output_file.write("Step,Healthy,Exposed,Infected,Recovered \n")
+        atexit.register(self.close_file,self)
        # self.datacollector = DataCollector(
         #    model_reporters={"Gini": compute_gini},  # A function to call
          #   agent_reporters={"Wealth": "wealth"})  # An agent attribute
@@ -292,13 +296,17 @@ class Model(Model):
                             pass
                     if self.preventative_stage==2:
                         self.entertain_lockdown=True
-                    if self.preventative_stage==1==3:
+                    if self.preventative_stage==3:
                         self.school_lockdown=True
 
 
         self.schedule.step()
+        self.output_file.write("{},{},{},{},{} \n".format(self.schedule.steps,self.count_type(self,1),self.count_type(self,2),self.count_type(self,3),self.count_type(self,4)))
     #def count(self):
      #   for
+    @staticmethod
+    def close_file(model):
+        model.output_file.close()
     @staticmethod
     def count_type(model, stage):
         """
@@ -309,3 +317,5 @@ class Model(Model):
             if person.stage == stage:
                 count += 1
         return count
+
+

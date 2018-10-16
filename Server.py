@@ -35,20 +35,20 @@ class Legend(TextElement):
         out.append("<div class='button'> <a href=\"#\" id =\"export\" role='button'>Export</a> </div>")
      #   out.append(" <script type='text/javascript'>$(document).ready(function () {"/
       #            "function  exportDataToCSV($table, filename) {"/
-        out.append("<script type=\'text/javascript\'>")
-        out.append("$(document).ready(function () {")
-        out.append("function exportResults($table, filename) {")
-        out.append(""" var $headers=$table.find('tr:has(th)'))
-                        var $rows=$table.find('tr:has(td)');
-                        console.log("$rows")""")
+     #   out.append("<script type=\'text/javascript\'>")
+      #  out.append("$(document).ready(function () {")
+       # out.append("function exportResults($table, filename) {")
+        #out.append(""" var $headers=$table.find('tr:has(th)'))
+         #               var $rows=$table.find('tr:has(td)');
+          #              console.log("$rows")""")
 
-        out.append(""" $("#export").click(function (event) {
-                var outputFile = window.prompt("Save file || 'export';\
-                outputFile = outputFile.replace('.csv','') + '.csv'\
-                exportResults.apply(this, [$('#data>table'), outputFile]);\
-            });/
-        });/""")
-        out.append("</script>")
+       # out.append(""" $("#export").click(function (event) {
+      #          var outputFile = window.prompt("Save file || 'export';\
+       #         outputFile = outputFile.replace('.csv','') + '.csv'\
+        #        exportResults.apply(this, [$('#data>table'), outputFile]);\
+         #   });/
+       # });/""")
+       # out.append("</script>")
 
 
 
