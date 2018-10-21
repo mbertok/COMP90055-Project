@@ -46,13 +46,16 @@ class Person(Agent):
         else:
             self.stage=1
         exposed_length=exposed_length/96
+        print("Exposed:"+str(exposed_length))
         exposure_dist=truncnorm( a=(1 - exposed_length) / 1, b=(10 - exposed_length) / 1,loc=exposed_length,scale=1)
         self.exposure_threshold=int(exposure_dist.rvs(1)[0]*96)
-        print("Exposure:"+str(exposed_length))
+        print("Exposure:"+str(self.exposure_threshold))
         self.expose=0
         self.infected_length=0
+        recovery_time=recovery_time/96
         recover_dist = truncnorm(a=(1 - recovery_time) / 1, b=(10 - recovery_time) / 1, loc=recovery_time, scale=1)
-        self.recover_period = int(recover_dist.rvs(1)[0] * 96)
+        self.recover_period = int(recover_dist.rvs(1)[0]*96)
+        print("Recover:"+str(self.recover_period))
         self.infect_prob=rate
         self.x=x
         self.y=y
@@ -76,25 +79,27 @@ class Person(Agent):
 
     def check_routine(self):
         #If time for move
-        print(type(self))
+        #print(type(self))
         hour = self.model.hour
         #day=self.model.day%7
-        print("Hour:" + str(hour))
-        print("Day:" + str(self.current_day))
-        print(self.leavetimes)
+        #print("Hour:" + str(hour))
+        #print("Day:" + str(self.current_day))
+        #print(self.leavetimes)
         # Check schedule
         #If not staying
         if not(self.staying):
                 if self.leavetimes[self.current_day][self.stage_behaviour] <= hour or (self.step_stage!=0):
-                    print("L1:" + str(self.leavetimes[self.stage_behaviour]))
-                    print("Dest:" + str(self.path[self.current_day][self.stage_behaviour]))
-                    print(self.stage_behaviour)
-                    print(self.step_stage)
-                    print(self.unique_id)
+              #      print("L1:" + str(self.leavetimes[self.stage_behaviour]))
+               #     print("Dest:" + str(self.path[self.current_day][self.stage_behaviour]))
+               #     print(self.stage_behaviour)
+               #     print(self.step_stage)
+               #     print(self.unique_id)
+                    #If weekend
                     if self.current_day>4:
                         if not self.model.entertain_lockdown:
                             self.move(list(self.path[self.current_day][self.stage_behaviour][self.step_stage]))
                     else:
+                        #Agent is student going to school
                         if self.current_day<5 and type(self) is Student:
                             if not self.model.school_lockdown:
                                 self.move(list(self.path[self.current_day][self.stage_behaviour][self.step_stage]))
@@ -109,19 +114,19 @@ class Person(Agent):
                             self.stage_behaviour=0
                             self.current_day+=1
                             self.current_day=self.current_day%7
-                            print("Reset"+str(self.stage_behaviour))
+                           # print("Reset"+str(self.stage_behaviour))
         #If staying
         else:
-            print("Staying")
-            print(self.stay_times[self.current_day][self.stage_behaviour])
-            print(self.stay_time)
+          #  print("Staying")
+           # print(self.stay_times[self.current_day][self.stage_behaviour])
+            #print(self.stay_time)
             #If exceded stay_time+exceded leave time
 
 
             if self.stay_time>self.stay_times[self.current_day][self.stage_behaviour]:
                 self.staying=False
                 self.stay_time=0
-                print("Leaving:")
+                #print("Leaving:")
 
                 #Not staying
                 #reset stay_time
@@ -201,7 +206,7 @@ class Person(Agent):
                 pass
 
     def move(self,dest):
-        print("To:"+str(dest))
+        #print("To:"+str(dest))
         self.model.grid.move_agent(self,(int(dest[0]),int(dest[1])))
         self.x,self.y=dest
 
@@ -253,19 +258,20 @@ class Person(Agent):
         #remove stationary agents
         for c in cellmates:
             if not issubclass(type(c),Person):
-                print(type(c))
+         #       print(type(c))
                 cellmates.remove(c)
         numb_interactions=random.randrange(0,len(cellmates))
-        print("interactions:"+str(numb_interactions))
+        #print("interactions:"+str(numb_interactions))
 #        if numb_interactions
         for i in range(numb_interactions):
             a=random.choice(cellmates)
-            if self.stage==1:
+            #print(type(a))
+            if self.stage==1 and not(self.vaccinated):
                 #If interacting with infected agent
-                if a.stage==3 and not(self.vaccinated):
+                if a.stage==3 :
                     chance = numpy.random.random_sample()
-                    print("Chance:" + str(chance))
-                    print(self.model.infection_rate)
+                    #print("Chance:" + str(chance))
+                   # print(self.model.infection_rate)
                     if float(chance) <= self.model.infection_rate:
                         self.stage = 2
                         self.expose = 0
@@ -274,8 +280,8 @@ class Person(Agent):
                 #If interacting with healthy agent
                 if a.stage==1 and not(a.vaccinated):
                     chance = numpy.random.random_sample()
-                    print("Chance:" + str(chance))
-                    print(self.model.infection_rate)
+                  #  print("Chance:" + str(chance))
+                   # print(self.model.infection_rate)
                     if float(chance) <= self.model.infection_rate:
                         a.stage = 2
                         a.expose = 0
@@ -303,7 +309,7 @@ class Person(Agent):
 
         else:
             pass
-        print("Type:"+str(type(self)))
+        #print("Type:"+str(type(self)))
         self.check_routine()
         #if self.stage==3 :
         self.interact()

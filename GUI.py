@@ -11,6 +11,7 @@ from PySide2.QtCore import QThread
 import multiprocessing
 import random
 import multiprocessing
+import re
 
 
 def get_port():
@@ -73,12 +74,13 @@ class Form(QDialog):
         self.recover_label = QLabel("Time taken to recover (Days)", self)
         self.recover = QLineEdit("")
         self.editable.append(self.recover)
-        self.port_label=QLabel("Port",self)
+        self.port_label=QLabel("Port(Auto assigned)",self)
         self.port=QLineEdit(" ")
         self.vacc_rate_label=QLabel("Vaccination Rate(Agents per tick)")
-        self.vacc_rate=QLineEdit("")
+        self.vacc_rate=QLineEdit(" ")
+        self.editable.append(self.vacc_rate)
         self.stages_threshold_label = QLabel("Proportion infected for each stage of preventative measures")
-        self.stages_threshold = QLineEdit("")
+        self.stages_threshold = QLineEdit(" ")
         self.editable.append(self.port)
         self.school_label=QLabel("Proportion of schools(%)")
         self.prop_school=QSpinBox()
@@ -98,6 +100,11 @@ class Form(QDialog):
         self.shop_label = QLabel("Proportion of Shops(%)")
         self.prop_shop = QSpinBox()
         self.prop_shop.setRange(0, 100)
+        self.export_label=QLabel("Export results?")
+        self.export=QCheckBox("",self)
+        self.filename_label=QLabel("Filename:")
+        self.filename=QLineEdit("")
+
         #self.prop_school.setSingleStep(0.01)
         self.StartButton = QPushButton("Create simulation")
         #self.DiseaseLoad = QPushButton("Upload disease model")
@@ -127,6 +134,10 @@ class Form(QDialog):
         layout.addWidget(self.prop_entertain, 8, 3, 1, 1)
         layout.addWidget(self.shop_label, 9, 2)
         layout.addWidget(self.prop_shop, 9, 3, 1, 1)
+        layout.addWidget(self.export_label,10,2)
+        layout.addWidget(self.export,10,3,1,1)
+        layout.addWidget(self.filename_label,11,2)
+        layout.addWidget(self.filename,11,3,1,1)
 
         layout.addWidget(self.width_label,2,0)
         layout.addWidget(self.width,2,1,1,1)
@@ -142,15 +153,16 @@ class Form(QDialog):
         layout.addWidget(self.recover, 7, 1, 1, 1)
         layout.addWidget(self.port_label,8,0)
         layout.addWidget(self.port,8,1,1,1)
+        self.port.setReadOnly(True)
         layout.addWidget(self.stages_threshold_label,9,0,1,1)
         layout.addWidget(self.stages_threshold,9,1,1,1)
         layout.addWidget(self.vacc_rate_label,10,0,1,1)
         layout.addWidget(self.vacc_rate,10,1,1,1)
 
-        layout.addWidget(self.StartButton, 11, 1, 1, 1)
-        layout.addWidget(self.ConfigLoad, 11, 2, 1, 1)
+        layout.addWidget(self.StartButton, 12, 1, 1, 1)
+        layout.addWidget(self.ConfigLoad, 12, 2, 1, 1)
         #layout.addWidget(self.DiseaseLoad, 11, 2, 1, 1)
-        layout.addWidget(self.ran_button, 11, 3, 1, 1)
+        layout.addWidget(self.ran_button, 12, 3, 1, 1)
         #layout.addWidget(self.quit)
         # Set dialog layout
         self.setLayout(layout)
@@ -166,7 +178,11 @@ class Form(QDialog):
 
     def load_config(self):
         self.file = QFileDialog.getOpenFileName(self, 'Open configuration file')
-        if Validate(self.file):
+        #print(self.file)
+        if  not all(self.file):
+            #print("Empty")
+            return
+        if Validate(self.file) :
             file_open=open(self.file[0],'r')
           #  parameters=["numb_agents","prop_student","prop_worker","prop_retiree","width","height","expose_time","infect_time"]
             parameters=[]
@@ -219,11 +235,12 @@ class Form(QDialog):
                         #self.infection_length.setText(parameter["infect_time"])
                         self.infection.setText(parameter["infect_rate"])
                         self.recover.setText(parameter["recover_time"])
-                        print(bool((parameter["preventative_on"])))
+                        #print("Pren:"+str((int(parameter["preventative_on"]))))
                         self.preventative_toggle.setChecked(bool(int(parameter["preventative_on"])))
                         #self.port.setText(parameter["port"])
                     elif t[0] == "Preventative":
                         print(line)
+                        #self.preventative_toggle.isChecked(True)
                         self.stages_threshold.setText(str((",").join(t[1:4])))
                         self.vacc_rate.setText(str(t[4]))
                     else:
@@ -322,8 +339,8 @@ class Form(QDialog):
             for e in self.editable:
                 e.setReadOnly(True)
                 #e.setText("L")
+            self.preventative_toggle.setEnabled(False)
             #print(get_port())
-            self.port.setText(str(get_port()))
         else:
             error_message = QErrorMessage(self)
             error_message.setWindowTitle("File Error")
@@ -359,26 +376,41 @@ class Form(QDialog):
             #if is_random:
                 #Create random agents
 
-
+    def setError(self,bool, message):
+        if not bool:
+            self.message=message
+        else:
+            pass
 
     def verify_config(self):
+       self.message=""
        agent_numb=isinstance(int(self.numb_agent.text()),int)
        vacc=False
        print("testing width")
        width=isinstance(int(self.width.text()),int)
+       self.setError(width,"Width is not a number")
        height=isinstance(int(self.height.text()),int)
+       self.setError(height,"Height is not a number")
        if float(self.infection.text())<=1:
            infect=True
        else:
            infect=False
+           self.setError(infect,"Infection rate is greater than 1")
+           #return infect
        exposure=isinstance(int(self.exposure.text()),int)
+       if not exposure:
+           self.setError(exposure,"Exposure length is not a number")
        print("Exposure")
        recover=isinstance(int(self.recover.text()),int)
+       if not recover:
+           self.setError(recover,"Recovery length is not a number")
        print("Recover")
-       port=isinstance(int(self.port.text()),int)
-       print("Port")
+       #port=isinstance(int(self.port.text()),int)
+       #print("Port")
        if float(self.student_prop.text())+float(self.worker_prop.text())+float(self.retire_prop.text())!=1:
            proportions=False
+           self.setError(proportions,"Proportions are not correct")
+          # return proportions
        else:
            proportions=True
            print("Proportions")
@@ -386,94 +418,154 @@ class Form(QDialog):
            vacc=False
            if isinstance(int(self.vacc_rate.text()),int):
                vacc=True
-               print(vacc)
+               #print(vacc)
            else:
                vacc=False
+               self.setError(vacc,"Vaccination rate is not a number")
+               #return vacc
            print("Stages")
            print(len(list(self.stages_threshold.text().split(","))))
            if len(list(self.stages_threshold.text().split(",")))!=3:
                stages=False
+               self.setError(stages,"Threshold have not been set correctly")
+               #return stages
            else:
                stages=True
-       return agent_numb and width and height and infect and exposure and recover\
-              and port and proportions and vacc and stages
+       else:
+           print(bool)
+           if str(self.vacc_rate.text()) and str(self.stages_threshold.text()):
+               vacc=True
+               stages=True
+           else:
+               vacc=False
+               stages=False
+               self.setError(vacc and stages,"Preventative measures not blank")
+
+       #export=False
+       if self.export.isChecked():
+           matches=re.findall("\w+",str(self.filename.text()))
+           if matches and len(matches)==1:
+               export=True
+           else:
+               export=False
+               self.setError(export,"Filename is not valid")
+               #return export
+       else:
+           if self.filename.text():
+               export=False
+               self.setError(export,"Filename field is not blank")
+           else:
+            export=True
+       return agent_numb and width and height and infect and exposure and recover  and proportions and vacc and stages and export
 
     def create_Random_simulation(self):
-        ran_width=random.randrange(10,40)
-        ran_height=random.randrange(10,40)
-        ran_agent_num=random.uniform(10,1000)
-        ran_exposure=random.uniform(0.5,3)
-        ran_recover=random.uniform(3,9)
-        ran_infect=random.randrange(0,1)
-        ran_port=get_port()
-        prop1=random.uniform(0,1)
-        prop2=random.uniform(0,1)
-        prop3=random.uniform(0,1)
-        print(str(ran_width)+":"+str(ran_height))
-        #sumagents=prop1+prop2+prop3
-
-        prophub=random.uniform(0.03,0.25)
-        #print(prophub)
-        ran_hub={}
-        hubs=self.randomCoordinates(prophub*(ran_width*ran_height),ran_width,ran_height)
-        for h in hubs:
-            num=random.randrange(2,4)
-            hub_elem=[]
-           # print(num)
-            for i in range(num):
-                hub_elem.append(hubs[random.randrange(len(hubs))])
-               # else:
-                #    ran_hub[h]=ran_hub[h].append(hubs[random.randrange(len(hubs))])
-
-            ran_hub[h]=hub_elem
-            #print(ran_hub[h])
-        #print(hubs)
-        prophome=random.uniform(0.02,0.03)
-        propworkplace=random.uniform(0.01,0.03)
-        propschool=random.uniform(0.01,0.03)
-        prop_leisure = random.uniform(0.01, 0.03)
-        prop_shops = random.uniform(0.01, 0.03)
-        prop_total=prophome+propworkplace+propschool
-       # print(prophome/prop_total)
-        #print(propschool/prop_total)
-        #print(propworkplace/prop_total)
-        homes=self.randomCoordinates((prophome)*(ran_width*ran_height),ran_width,ran_height)
-        home_capacity={}
-        for h in homes:
-            home_capacity[h]=random.randrange(int(ran_agent_num/2),int(ran_agent_num))
-        print("Homes:"+str((prophome)))
-        workplaces=self.randomCoordinates((propworkplace)*(ran_width*ran_height),ran_width,ran_height)
-        work_capacity = {}
-        for w in workplaces:
-            work_capacity[w] = random.randrange(int(ran_agent_num/2),int(ran_agent_num))
-        print("Workplaces:"+str((propworkplace)))
-        schools=self.randomCoordinates((propschool)*(ran_width*ran_height),ran_width,ran_height)
-        school_capacity = {}
-        for s in schools:
-            school_capacity[s] = random.randrange(int(ran_agent_num/2),int(ran_agent_num))
-        print("Schools:"+str((propschool)))
-        #print(homes)
-        #print(workplaces)
-        #print(schools)
-        leisure=self.randomCoordinates((prop_leisure)*(ran_width*ran_height),ran_width,ran_height)
-        shops=self.randomCoordinates((prop_shops)*(ran_width*ran_height),ran_width,ran_height)
-        preventative=random.choice([True, False])
-        if preventative:
-            stages_threshold=[]
-            for s in range(len(stages_threshold)):
-                if s==0:
-                    stages_threshold.append(random.uniform(0.02,0.2))
-                else:
-                    stages_threshold.append(stages_threshold[s-1]+random.uniform(0.02,0.2))
-            vacc_rate=random.uniform(0,1)
         self.StartButton.setEnabled(False)
         self.ran_button.setEnabled(False)
         self.ConfigLoad.setEnabled(False)
-        print(str(prop1)+":"+str(prop2)+":"+str(prop3))
-      #  Server=create_server(ran_agent_num,ran_width,ran_height,ran_exposure,ran_recover,ran_infect,prop1,prop2,prop3,ran_hub,homes,schools,workplaces,
-            #                 home_capacity,school_capacity,work_capacity,leisure,shops,stages_threshold,vacc_rate)
+
+        self.sim = threading.Thread(target=self.random_simulation)
+        self.sim.setDaemon(True)
+        self.sim.start()
        # Server.port=int(ran_port)
         #Server.launch()
+    def random_simulation(self):
+        ran_width = random.randrange(10, 40)
+        ran_height = random.randrange(10, 40)
+        ran_agent_num = random.randrange(10, 1000)
+        ran_exposure = random.randrange(1, 6)
+        ran_recover = random.randrange(3, 9)
+        ran_infect = random.uniform(0, 1)
+        ran_port = get_port()
+        prop1 = random.uniform(0, 1)
+        prop2 = random.uniform(0, 1)
+        prop3 = random.uniform(0, 1)
+        print(str(ran_width) + ":" + str(ran_height))
+        # sumagents=prop1+prop2+prop3
+
+        prophub = random.uniform(0.01, 0.25)
+        # print(prophub)
+        ran_hub = {}
+        hubs = self.randomCoordinates(prophub * (ran_width * ran_height), ran_width, ran_height)
+        for h in hubs:
+            num = random.randrange(2, 4)
+            hub_elem = []
+            # print(num)
+            for i in range(num):
+                hub_elem.append(hubs[random.randrange(len(hubs))])
+            # else:
+            #    ran_hub[h]=ran_hub[h].append(hubs[random.randrange(len(hubs))])
+
+            ran_hub[h] = hub_elem
+            # print(ran_hub[h])
+        # print(hubs)
+        prophome = random.uniform(0.02, 0.2)
+        propworkplace = random.uniform(0.01, 0.2)
+        propschool = random.uniform(0.01, 0.2)
+        prop_leisure = random.uniform(0.01, 0.2)
+        prop_shops = random.uniform(0.01, 0.2)
+        prop_total = prophome + propworkplace + propschool
+        # print(prophome/prop_total)
+        # print(propschool/prop_total)
+        # print(propworkplace/prop_total)
+        homes = self.randomCoordinates((prophome) * (ran_width * ran_height), ran_width, ran_height)
+        home_capacity = {}
+        for h in homes:
+            home_capacity[h] = random.randrange(int(ran_agent_num / 2), int(ran_agent_num))
+        print("Homes:" + str((prophome)))
+        workplaces = self.randomCoordinates((propworkplace) * (ran_width * ran_height), ran_width, ran_height)
+        work_capacity = {}
+        for w in workplaces:
+            work_capacity[w] = random.randrange(int(ran_agent_num / 2), int(ran_agent_num))
+        print("Workplaces:" + str((propworkplace)))
+        schools = self.randomCoordinates((propschool) * (ran_width * ran_height), ran_width, ran_height)
+        school_capacity = {}
+        for s in schools:
+            school_capacity[s] = random.randrange(int(ran_agent_num / 2), int(ran_agent_num))
+        print("Schools:" + str((propschool)))
+        # print(homes)
+        # print(workplaces)
+        # print(schools)
+        leisure = self.randomCoordinates((prop_leisure) * (ran_width * ran_height), ran_width, ran_height)
+        shops = self.randomCoordinates((prop_shops) * (ran_width * ran_height), ran_width, ran_height)
+        preventative = random.choice([True, False])
+        stages_threshold = []
+        print(preventative)
+        if preventative:
+            for s in range(3):
+                if s == 0:
+                    stages_threshold.append(random.uniform(0.01, 0.2))
+                else:
+                    stages_threshold.append(stages_threshold[s - 1] + random.uniform(0.02, 0.2))
+            vacc_rate = random.uniform(0, 1)
+        else:
+            vacc_rate = 0
+
+        # export_results=random.choice([True,False])
+        export_results = True
+        filename = str(ran_port)
+        # if export_results:
+        # filename=str(ran_port)+"csv"
+        # else:
+        #   filename=""
+
+        print(str(prop1) + ":" + str(prop2) + ":" + str(prop3))
+        self.numb_agent.setText(str(ran_agent_num))
+        self.width.setText(str(ran_width))
+        self.height.setText(str(ran_height))
+        self.exposure.setText(str(ran_exposure))
+        self.recover.setText(str(ran_recover))
+        self.infection.setText(str(ran_infect))
+        self.student_prop.setText(str(prop1))
+        self.worker_prop.setText(str(prop2))
+        self.retire_prop.setText(str(prop3))
+        self.port.setText(str(ran_port))
+        self.preventative_toggle.setChecked(preventative)
+#        self.stages_threshold.setText(",".join((stages_threshold)))
+        print("Stages="+str(stages_threshold))
+        create_server(ran_agent_num, ran_width, ran_height, ran_exposure, ran_recover, ran_infect, prop1, prop2, prop3,
+                      ran_hub, homes, schools, workplaces,
+                      home_capacity, school_capacity, work_capacity, leisure, shops, [], [], preventative,
+                      stages_threshold, vacc_rate, export_results, filename, ran_port)
     def CreateRandomHubs(self,proportion,width,height):
         network={}
         hubs = self.randomCoordinates(float(proportion) * int(width) * int(height), width, height)
@@ -488,6 +580,7 @@ class Form(QDialog):
 
             network[h] = hub_elem
         return network
+
     def CreateRandomEnvironment(self,number,proportion,width,height):
             capacity={}
             environment=self.randomCoordinates(float(proportion)*(int(width)*int(height)),width,height)
@@ -507,44 +600,61 @@ class Form(QDialog):
             out.append((x,y))
         return out
     # Greets the user
-    def server(self):
-        if not self.setEnvironment:
-            self.hubs=self.CreateRandomHubs(float(int(self.prop_hub.value())/100),self.width.text(),self.height.text())
-            self.homes,self.homecapacity=self.CreateRandomEnvironment(self.numb_agent.text(),self.prop_home.value(),self.width.text(),self.height.text())
-            self.schools,self.schoolcapacity=self.CreateRandomEnvironment(self.numb_agent.text(),self.prop_school.value(),self.width.text(),self.height.text())
-            self.workplaces,self.workplacecapacity=self.CreateRandomEnvironment(self.numb_agent.text(),self.prop_workplace.value(),self.width.text(),self.height.text())
-            self.entertain = self.randomCoordinates(float(self.prop_entertain.value()) * (int(self.width.text()) * int(self.height.text())), self.width.text(), self.height.text())
-            self.shops = self.randomCoordinates(float(self.prop_shop.value()) * (int(self.width.text()) * int(self.height.text())), self.width.text(), self.height.text())
-            #Get randomised response model
-
-        if self.verify_config():
-            #self.thread = QtCore.QThread(self)
-            server=create_server(int(self.numb_agent.text()),int(self.width.text()),int(self.height.text()),int(self.exposure.text()),int(self.recover.text()),float(self.infection.text()),
-                                 float(self.worker_prop.text()),float(self.student_prop.text()),float(self.retire_prop.text()),self.hubs,self.homes,self.schools,self.workplaces,
-                                 self.homecapacity,self.schoolcapacity,self.workplacecapacity,self.entertain,self.shops,self.stationary_agents,self.moving_agents,self.preventative_toggle.isChecked(),self.stages_threshold.text().split(",")
-                                 ,self.vacc_rate.text(),int(self.port.text()))
-            #server.port = int(self.port.text()) # The default
-#           server.moveToThread(self.thread)
-           # server.launch()
-            self.StartButton.setEnabled(False)
-            self.ran_button.setEnabled(False)
-            self.ConfigLoad.setEnabled(False)
-            #self.thread.start()
-            print("Launched!")
-        else:
-            error_message = QErrorMessage(self)
-            error_message.setWindowTitle("Config Error")
-            error_message.showMessage("Invalid Config")
-
-        #From https://stackoverflow.com/questions/2838244/get-open-tcp-port-in-python/2838309#2838309
-    def launch_server(self):
+    def simulation(self):
+        #self.thread = QtCore.QThread(self)
         self.StartButton.setEnabled(False)
         self.ran_button.setEnabled(False)
         self.ConfigLoad.setEnabled(False)
-        self.sim=threading.Thread(target=self.server)
-        self.sim.setDaemon(True)
-        #self.sim=multiprocessing.Process(target=self.server)
-        self.sim.start()
+        self.port.setText(str(get_port()))
+        server=create_server(int(self.numb_agent.text()),int(self.width.text()),int(self.height.text()),int(self.exposure.text()),int(self.recover.text()),float(self.infection.text()),
+                             float(self.worker_prop.text()),float(self.student_prop.text()),float(self.retire_prop.text()),self.hubs,self.homes,self.schools,self.workplaces,
+                             self.homecapacity,self.schoolcapacity,self.workplacecapacity,self.entertain,self.shops,self.stationary_agents,self.moving_agents,self.preventative_toggle.isChecked(),self.stages_threshold.text().split(",")
+                             ,self.vacc_rate.text(),self.export.isChecked(),self.filename.text(),int(self.port.text()))
+        #server.port = int(self.port.text()) # The default
+#           server.moveToThread(self.thread)
+       # server.launch()
+
+        #self.thread.start()
+        print("Launched!")
+
+
+        #From https://stackoverflow.com/questions/2838244/get-open-tcp-port-in-python/2838309#2838309
+    def launch_server(self):
+        if not self.setEnvironment:
+            self.hubs = self.CreateRandomHubs(float(int(self.prop_hub.value()) / 100), int(self.width.text()),
+                                              int(self.height.text()))
+            self.homes, self.homecapacity = self.CreateRandomEnvironment(int(self.numb_agent.text()), float(self.prop_home.value()/100),
+                                                                         int(self.width.text()), int(self.height.text()))
+            self.schools, self.schoolcapacity = self.CreateRandomEnvironment(int(self.numb_agent.text()),
+                                                                             float(self.prop_school.value()/100),
+                                                                             int(self.width.text()), int(self.height.text()))
+            self.workplaces, self.workplacecapacity = self.CreateRandomEnvironment(int(self.numb_agent.text()),
+                                                                                   float(self.prop_workplace.value()/100),
+                                                                                   int(self.width.text()),
+                                                                                   int(self.height.text()))
+            self.entertain = self.randomCoordinates(
+                float((self.prop_entertain.value()) /100)* (int(self.width.text()) * int(self.height.text())),
+                int(self.width.text()), int(self.height.text()))
+            self.shops = self.randomCoordinates(
+                float((self.prop_shop.value()/100) * (int(self.width.text())) * int(self.height.text())), int(self.width.text()),
+                int(self.height.text()))
+            # Get randomised response model
+       # self.StartButton.setEnabled(False)
+        #self.ran_button.setEnabled(False)
+        #self.ConfigLoad.setEnabled(False)
+        if self.verify_config():
+            self.sim=threading.Thread(target=self.simulation)
+            self.sim.setDaemon(True)
+            #self.sim=multiprocessing.Process(target=self.server)
+            self.sim.start()
+        else:
+            error_message = QErrorMessage(self)
+            error_message.setWindowTitle("Config Error")
+            error_message.showMessage(self.message)
+            # error_message.setModal(True)
+            # error_message.exec_()
+
+
 
     def closeEvent(self, evnt):
         #self.sim.join()

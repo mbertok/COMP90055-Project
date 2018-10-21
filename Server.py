@@ -28,11 +28,11 @@ class Legend(TextElement):
             out.append("<span   style=\" white-space: nowrap; color:{};\"> {}</span> ".format(Colors[c], str(c)))
         out.append("</div>")
         out.append("<table id=\"data\"> ")
-
+        out.append("<tr><td>{}</td></tr>".format(model.schedule.steps))
         for i in range(1, 5, 1):
             out.append("<tr><td>{}: </td><td>{}</td> </tr>".format(color[i-1],model.count_type(model,i)))
         out.append("</table> \n")
-        out.append("<div class='button'> <a href=\"#\" id =\"export\" role='button'>Export</a> </div>")
+        #out.append("<div class='button'> <a href=\"#\" id =\"export\" role='button'>Export</a> </div>")
      #   out.append(" <script type='text/javascript'>$(document).ready(function () {"/
       #            "function  exportDataToCSV($table, filename) {"/
      #   out.append("<script type=\'text/javascript\'>")
@@ -67,7 +67,7 @@ class Legend(TextElement):
 
 def create_server(numb_agents,width,height,expose,recover,rate,prop_worker,prop_student,prop_retire,hubs,homes,schools,workplaces,
                   home_capacity,school_capacity,work_capacity,entertain,shops,stationary_agents=[],moving_agents=[],preventative_toggle=False,stage_threshold=[0.2, 0.5, 0.7],
-                  vacc_rate=0.5,port=0):
+                  vacc_rate=0.5,export_results=False,filename="log.csv",port=0):
     #Colors={"Healthy":"#66cd00","Exposed":"#ffd700","Infected":"#b22222","Recovered":"#9932cc"}
     grid = CanvasGrid(agent_portrayal, width, height, 800, 500)
     chart_element = ChartModule([{"Label": label, "Color": color} for (label, color) in Colors.items()])
@@ -98,7 +98,9 @@ def create_server(numb_agents,width,height,expose,recover,rate,prop_worker,prop_
                                     "infect_agent_move":moving_agents,
                                     "preventative_measures_active": preventative_toggle,
                                     "stage_thresholds" : stage_threshold,
-                                    "vacc_rate" : vacc_rate
+                                    "vacc_rate" : vacc_rate,
+                                    "export_results": export_results,
+                                    "filename": str(filename)+".csv"
 
 
 

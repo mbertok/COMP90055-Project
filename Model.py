@@ -11,6 +11,7 @@ import math
 import secrets
 import atexit
 import networkx as nx
+import sys
 
 import random
 
@@ -24,7 +25,8 @@ def compute_gini(model):
 class Model(Model):
     """A model with some number of agents."""
     def __init__(self, N, width, height,expose,recover,rate,prop1=0.2,prop2=0.3,prop3=0.5,hubs={},homes=[(0,0)],schools=[(0,0)],workplaces=[(0,0)],home_max={},school_max={},work_max={},
-                 entertain=[(0,0)],shops=[(0,0)],infect_agent_station=[],infect_agent_move=[],preventative_measures_active=False,stage_thresholds=[],vacc_rate=0.0):
+                 entertain=[(0,0)],shops=[(0,0)],infect_agent_station=[],infect_agent_move=[],preventative_measures_active=False,stage_thresholds=[],vacc_rate=0.0
+                 ,export_results=False,filename="log.csv"):
         self.num_agents = N
         self.grid = MultiGrid(width, height, False)
      #   print(str(width)+":"+str(height))
@@ -218,19 +220,19 @@ class Model(Model):
                 #Place everyone in their own homes
                 if stage==1:
                 #    print("Worker")
-                    a = Worker(agent_id, self,expose,recover,self.infection_rate,x,y,self.initial_infected)
+                    a = Worker(agent_id, self,self.expose,self.recover,self.infection_rate,x,y,self.initial_infected)
                 elif stage==2:
                   #  print("Student")
-                    a= Student(agent_id, self,expose,recover,self.infection_rate,x,y,self.initial_infected)
+                    a= Student(agent_id, self,self.expose,self.recover,self.infection_rate,x,y,self.initial_infected)
                 elif stage==3:
                    # print("Retire")
-                    a=Retiree(agent_id, self,expose,recover,self.infection_rate,x,y,self.initial_infected)
+                    a=Retiree(agent_id, self,self.expose,self.recover,self.infection_rate,x,y,self.initial_infected)
                 a.x, a.y = a.places[0][1]
                 self.schedule.add(a)
                 self.grid.place_agent(a, (int(a.x), int(a.y)))
                # print("Loc:"+str(a.x)+":"+str(a.y))
                 agent_id+=1
-            #if agent_id%100==0:
+            if agent_id%100==0:
                 print(str(agent_id)+" agents generated")
 
             stage+=1
@@ -261,16 +263,29 @@ class Model(Model):
 
          })
         print("Finished!")
-        self.output_file=open("Log.csv","w")
-        self.output_file.write("Step,Healthy,Exposed,Infected,Recovered \n")
-        atexit.register(self.close_file,self)
+        self.export_results=export_results
+        if export_results:
+#            if not self.output_file.closed:
+ #               self.output_file.close()
+            self.output_file=open(filename,"w")
+            self.output_file.write("Step,Healthy,Exposed,Infected,Recovered \n")
+            atexit.register(self.close_file,self)
+            print("Export file created")
        # self.datacollector = DataCollector(
         #    model_reporters={"Gini": compute_gini},  # A function to call
          #   agent_reporters={"Wealth": "wealth"})  # An agent attribute
 
+
     def step(self):
         #print("Step")
         self.datacollector.collect(self)
+        if self.export_results:
+            try:
+                self.output_file.write(
+                "{},{},{},{},{} \n".format(self.schedule.steps, self.count_type(self, 1), self.count_type(self, 2),
+                                           self.count_type(self, 3), self.count_type(self, 4)))
+            except ValueError:
+                sys.exit()
         self.quarter+=1
         if self.quarter>3:
             self.hour+=1
@@ -282,27 +297,32 @@ class Model(Model):
             print(self.preventative_stage)
             if self.preventative_stage<len(self.stage_thresholds)-1:
                 #check proportion
+                print("Curr:"+str(self.count_type(self,3))+", total"+str(self.num_agents))
+                print("Ratio:"+str(float(self.count_type(self,3)/self.num_agents)))
+                print(float(self.stage_thresholds[self.preventative_stage+1]))
                 if float(self.count_type(self,3)/self.num_agents)>float(self.stage_thresholds[self.preventative_stage+1]):
                 #increment stage
                     self.preventative_stage+=1
-                    if self.preventative_stage==1:
-                        try:
-                            #Get random agents to vaccinate
-                            agents=[agent for agent in self.schedule.agents if (not agent.vaccinated) and agent.stage==1 and agent.staying]
-                            agents_to_vaccinate=random.sample(agents,int(self.vacc_rate))
-                            for a in agents_to_vaccinate:
-                                a.vaccinate()
-                        except:
-                            pass
-                    if self.preventative_stage==2:
-                        self.entertain_lockdown=True
-                    if self.preventative_stage==3:
-                        self.school_lockdown=True
-
+                    print("Stage!")
+                if self.preventative_stage>=0:
+                    print("Vacc")
+                    try:
+                        #Get random agents to vaccinate
+                        agents=[agent for agent in self.schedule.agents if (not agent.vaccinated) and agent.stage==1 and agent.staying]
+                        agents_to_vaccinate=random.sample(agents,int(self.vacc_rate))
+                        for a in agents_to_vaccinate:
+                            a.vaccinate()
+                    except:
+                        pass
+                if self.preventative_stage==1:
+                    self.entertain_lockdown=True
+                    print("Entertain!")
+                if self.preventative_stage==2:
+                    self.school_lockdown=True
+                    print("School!")
 
         self.schedule.step()
-        self.output_file.write("{},{},{},{},{} \n".format(self.schedule.steps,self.count_type(self,1),self.count_type(self,2),self.count_type(self,3),self.count_type(self,4)))
-    #def count(self):
+       #def count(self):
      #   for
     @staticmethod
     def close_file(model):

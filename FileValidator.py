@@ -17,6 +17,7 @@ def Validate(file):
     print(contents)
     agents_info_included = False
     model_info_included = False
+    preventative_included = False
     agents={"numb_agents":0, "prop_student":0, "prop_worker":0, "prop_retiree":0}#initialisation
     model={"width":0, "height":0, "expose_time":0, "recover_time":0, "infect_rate":0, "port":0}#initialisation
     for c in range(len(contents)):
@@ -54,7 +55,7 @@ def Validate(file):
             model_info_included = True
             print(model_info_included)
         elif line[0]=="Preventative":
-            if ("preventative_on" in model.keys())  :
+            if ("preventative_on" in model.keys()) and int(model["preventative_on"])==1 :
                 thresholds=line[1:4]
                 for t in range(len(thresholds)):
                     if not(isinstance(float(thresholds[t]),float) and float(thresholds[t])<1):
@@ -66,6 +67,7 @@ def Validate(file):
                     return False
                 if not bool(int(model["preventative_on"])):
                     return False
+                preventative_included=True
             else:
                 return False
         elif line[0]=="Rail":
@@ -137,8 +139,11 @@ def Validate(file):
   #  print(housing_max_capacity)
    # print(school_max_capacity)
     #print(workplaces_max_capacity)
+    print("Preven:"+str(bool(int(model["preventative_on"]))))
+    print((preventative_included and int(model["preventative_on"])))
     return agents_info_included and model_info_included and CheckCapacity(agents["numb_agents"],1,housing_max_capacity) and CheckCapacity(agents["numb_agents"],agents["prop_student"],school_max_capacity) \
-           and  CheckCapacity(agents["numb_agents"],agents["prop_worker"],workplaces_max_capacity)
+           and  CheckCapacity(agents["numb_agents"],agents["prop_worker"],workplaces_max_capacity) \
+           and ((preventative_included and int(model["preventative_on"])) or (  not preventative_included and (not int(model["preventative_on"]))))
 
 
 
