@@ -8,16 +8,18 @@ import tkinter
 import threading
 import socket
 from PySide2.QtCore import QThread
-import multiprocessing
 import random
-import multiprocessing
 import re
 
-
+#This methods returns a free port from the system
+# From https://stackoverflow.com/questions/2838244/get-open-tcp-port-in-python/2838309#2838309
+#Output: the next free port on the system
 def get_port():
     s = socket.socket()
     s.bind(('', 0))  # Bind to a free port provided by the host.
     return s.getsockname()[1]  # Return the port number assigned.
+
+#Not being used
 def SimThread(Thread):
     def __init__(self,simulation):
         self.running=False
@@ -34,6 +36,7 @@ def SimThread(Thread):
 
 class Form(QDialog):
 
+    #Creates a new Graphical User Interface
     def __init__(self, parent=None):
         super(Form, self).__init__(parent)
         self.setEnvironment=False
@@ -175,14 +178,17 @@ class Form(QDialog):
         self.setWindowTitle('Disease Simulation')
         #self.quit.clicked.connect(exit())
 
-
+    #Loads up a configuration file specified by the user, and after verifying that it is the correct format,
+    #creates updates the settings and properties of to-be created model
+    #Input:None
+    #Output: None
     def load_config(self):
-        self.file = QFileDialog.getOpenFileName(self, 'Open configuration file')
+        self.file = QFileDialog.getOpenFileName(self, 'Open configuration file')#Uploading the file and reading it
         #print(self.file)
         if  not all(self.file):
             #print("Empty")
             return
-        if Validate(self.file) :
+        if Validate(self.file) :#If the file is valid
             file_open=open(self.file[0],'r')
           #  parameters=["numb_agents","prop_student","prop_worker","prop_retiree","width","height","expose_time","infect_time"]
             parameters=[]
@@ -261,28 +267,23 @@ class Form(QDialog):
                            # print(house_capacity)
 
                         elif t[0]=="Rail":
-                            #print("hub!")
-                            #station_info=t[1].split(" ")
                             station_id=t[1]
-                            print(station_id)
+                            #print(station_id)
                             station_coords=t[2].split(" ")
                             station_coord=(station_coords[0],station_coords[1])
-                           # print(station_coord)
                             station_connected=t[3]
                             stations[station_id]=station_coord
                             connected[station_id]=station_connected
-                          #  print(station_connected)
-                          #  for s in station_connected:
-                          #      print ("c"+str(s))
+
                         elif t[0]=="School":
                             school_id = t[1]
                             school_info = t[2].split(" ")
                             school_coord = (int(school_info[0]),int(school_info[1]))
-                            print(school_coord)
+                            #print(school_coord)
                             school_capacity = t[3]
                             schools.append(school_coord)
                             self.schoolcapacity[school_coord]=school_capacity
-                            print( self.schoolcapacity[school_coord])
+                            #print( self.schoolcapacity[school_coord])
                         elif t[0]=="Workplace":
                             workplace_id = t[1]
                             workplace_info = t[2].split(" ")
@@ -308,7 +309,7 @@ class Form(QDialog):
 
 
             self.hubs={}
-            print(connected.keys())
+            #print(connected.keys())
             for k in connected.keys():
                 key=stations[k]
                 print("Key:"+str(key))
@@ -341,10 +342,12 @@ class Form(QDialog):
                 #e.setText("L")
             self.preventative_toggle.setEnabled(False)
             #print(get_port())
+        #If the file is not formatted properly
         else:
             error_message = QErrorMessage(self)
             error_message.setWindowTitle("File Error")
             error_message.showMessage("File is not formatted correctly")
+    #Not implemented
     def load_disease_model(self):
         #Add file validation
         disease_file=QFileDialog.getOpenFileName(self, 'Open configuration file')
@@ -375,64 +378,91 @@ class Form(QDialog):
                         self.moving_agents.append((coord_x,coord_y))
             #if is_random:
                 #Create random agents
-
+    #This function will if appropriate, set the error message
+    #Input: bool: If it is an error, message: the errror message
+    #Output: None
     def setError(self,bool, message):
         if not bool:
             self.message=message
         else:
             pass
-
+    #This method verifies that the parameters given on the graphical user interface are valid
+    #Input:None
+    #Output: a boolean indicating if the parameters are valid or not
     def verify_config(self):
        self.message=""
-       agent_numb=isinstance(int(self.numb_agent.text()),int)
+       try:
+        agent_numb=isinstance(int(self.numb_agent.text()),int)
+       except ValueError:
+           agent_numb=False
        vacc=False
-       print("testing width")
-       width=isinstance(int(self.width.text()),int)
-       self.setError(width,"Width is not a number")
-       height=isinstance(int(self.height.text()),int)
-       self.setError(height,"Height is not a number")
-       if float(self.infection.text())<=1:
-           infect=True
-       else:
+       try:
+           width=isinstance(int(self.width.text()),int)
+           self.setError(width,"Width is not a number")
+       #In case of blank
+       except ValueError:
+           width = False
+           self.setError(width, "Width is not a number")
+       try:
+           height=isinstance(int(self.height.text()),int)
+           self.setError(height,"Height is not a number")
+       except ValueError:
+           height=False
+           self.setError(height,"Height is not a number")
+       try:
+           if float(self.infection.text())<=1:
+               infect=True
+           else:
+               infect=False
+               self.setError(infect,"Infection rate is greater than 1")
+               #return infect
+       except ValueError:
            infect=False
-           self.setError(infect,"Infection rate is greater than 1")
-           #return infect
-       exposure=isinstance(int(self.exposure.text()),int)
-       if not exposure:
-           self.setError(exposure,"Exposure length is not a number")
-       print("Exposure")
-       recover=isinstance(int(self.recover.text()),int)
-       if not recover:
+           self.setError(infect,"infect is not a number")
+       try:
+            exposure=isinstance(int(self.exposure.text()),int)
+            self.setError(exposure,"Exposure length is not a number")
+       except ValueError:
+           exposure = False
+           self.setError(exposure, "Exposure length is not a number")
+       try:
+           recover=isinstance(int(self.recover.text()),int)
            self.setError(recover,"Recovery length is not a number")
-       print("Recover")
-       #port=isinstance(int(self.port.text()),int)
-       #print("Port")
-       if float(self.student_prop.text())+float(self.worker_prop.text())+float(self.retire_prop.text())!=1:
+       except ValueError:
+           recover = False
+           self.setError(recover, "Recovery length is not a number")
+       try:
+           if float(self.student_prop.text())+float(self.worker_prop.text())+float(self.retire_prop.text())!=1:
+               proportions=False
+               self.setError(proportions,"Proportions are not correct")
+              # return proportions
+           else:
+               proportions=True
+       except ValueError:
            proportions=False
-           self.setError(proportions,"Proportions are not correct")
-          # return proportions
-       else:
-           proportions=True
-           print("Proportions")
+           self.setError(proportions, "Proportions are not correct")
        if self.preventative_toggle.isChecked():
            vacc=False
-           if isinstance(int(self.vacc_rate.text()),int):
-               vacc=True
-               #print(vacc)
-           else:
+           try:
+               if isinstance(int(self.vacc_rate.text()),int):
+                   vacc=True
+               else:
+                   vacc=False
+                   self.setError(vacc,"Vaccination rate is not a number")
+           except ValueError:
                vacc=False
-               self.setError(vacc,"Vaccination rate is not a number")
-               #return vacc
-           print("Stages")
-           print(len(list(self.stages_threshold.text().split(","))))
-           if len(list(self.stages_threshold.text().split(",")))!=3:
-               stages=False
-               self.setError(stages,"Threshold have not been set correctly")
-               #return stages
-           else:
-               stages=True
+               self.setError(vacc, "Vaccination rate is not a number")
+
+           try:
+               if len(list(self.stages_threshold.text().split(",")))!=3:
+                   stages=False
+                   self.setError(stages,"Threshold have not been set correctly")
+               else:
+                   stages=True
+           except ValueError:
+               stages = False
+               self.setError(stages, "Threshold have not been set correctly")
        else:
-           print(bool)
            if str(self.vacc_rate.text()) and str(self.stages_threshold.text()):
                vacc=True
                stages=True
@@ -441,7 +471,6 @@ class Form(QDialog):
                stages=False
                self.setError(vacc and stages,"Preventative measures not blank")
 
-       #export=False
        if self.export.isChecked():
            matches=re.findall("\w+",str(self.filename.text()))
            if matches and len(matches)==1:
@@ -458,6 +487,7 @@ class Form(QDialog):
             export=True
        return agent_numb and width and height and infect and exposure and recover  and proportions and vacc and stages and export
 
+    #Disables the buttons on the GUI and starts a random simulation in a new thread
     def create_Random_simulation(self):
         self.StartButton.setEnabled(False)
         self.ran_button.setEnabled(False)
@@ -468,7 +498,11 @@ class Form(QDialog):
         self.sim.start()
        # Server.port=int(ran_port)
         #Server.launch()
+    #Creates a completely random simulation
+    #Input: None
+    #Output: None
     def random_simulation(self):
+        #Randomsing parameters
         ran_width = random.randrange(10, 40)
         ran_height = random.randrange(10, 40)
         ran_agent_num = random.randrange(10, 1000)
@@ -479,57 +513,48 @@ class Form(QDialog):
         prop1 = random.uniform(0, 1)
         prop2 = random.uniform(0, 1)
         prop3 = random.uniform(0, 1)
-        print(str(ran_width) + ":" + str(ran_height))
-        # sumagents=prop1+prop2+prop3
-
         prophub = random.uniform(0.01, 0.25)
-        # print(prophub)
+
+
+        #Creating the hubs
         ran_hub = {}
         hubs = self.randomCoordinates(prophub * (ran_width * ran_height), ran_width, ran_height)
         for h in hubs:
             num = random.randrange(2, 4)
             hub_elem = []
-            # print(num)
             for i in range(num):
                 hub_elem.append(hubs[random.randrange(len(hubs))])
-            # else:
-            #    ran_hub[h]=ran_hub[h].append(hubs[random.randrange(len(hubs))])
-
             ran_hub[h] = hub_elem
-            # print(ran_hub[h])
-        # print(hubs)
+
         prophome = random.uniform(0.02, 0.2)
         propworkplace = random.uniform(0.01, 0.2)
         propschool = random.uniform(0.01, 0.2)
         prop_leisure = random.uniform(0.01, 0.2)
         prop_shops = random.uniform(0.01, 0.2)
         prop_total = prophome + propworkplace + propschool
-        # print(prophome/prop_total)
-        # print(propschool/prop_total)
-        # print(propworkplace/prop_total)
+
+        #Creating the homes
         homes = self.randomCoordinates((prophome) * (ran_width * ran_height), ran_width, ran_height)
         home_capacity = {}
         for h in homes:
             home_capacity[h] = random.randrange(int(ran_agent_num / 2), int(ran_agent_num))
-        print("Homes:" + str((prophome)))
+        #Creating the workplaces
         workplaces = self.randomCoordinates((propworkplace) * (ran_width * ran_height), ran_width, ran_height)
         work_capacity = {}
         for w in workplaces:
             work_capacity[w] = random.randrange(int(ran_agent_num / 2), int(ran_agent_num))
-        print("Workplaces:" + str((propworkplace)))
+        #Creating the schools
         schools = self.randomCoordinates((propschool) * (ran_width * ran_height), ran_width, ran_height)
         school_capacity = {}
         for s in schools:
             school_capacity[s] = random.randrange(int(ran_agent_num / 2), int(ran_agent_num))
-        print("Schools:" + str((propschool)))
-        # print(homes)
-        # print(workplaces)
-        # print(schools)
+        #Creating the leisure centres and shops
         leisure = self.randomCoordinates((prop_leisure) * (ran_width * ran_height), ran_width, ran_height)
         shops = self.randomCoordinates((prop_shops) * (ran_width * ran_height), ran_width, ran_height)
+
+        #Preparing the preventative measures
         preventative = random.choice([True, False])
         stages_threshold = []
-        print(preventative)
         if preventative:
             for s in range(3):
                 if s == 0:
@@ -548,31 +573,30 @@ class Form(QDialog):
         # else:
         #   filename=""
 
-        print(str(prop1) + ":" + str(prop2) + ":" + str(prop3))
-        self.numb_agent.setText(str(ran_agent_num))
-        self.width.setText(str(ran_width))
-        self.height.setText(str(ran_height))
-        self.exposure.setText(str(ran_exposure))
-        self.recover.setText(str(ran_recover))
-        self.infection.setText(str(ran_infect))
-        self.student_prop.setText(str(prop1))
-        self.worker_prop.setText(str(prop2))
-        self.retire_prop.setText(str(prop3))
-        self.port.setText(str(ran_port))
-        self.preventative_toggle.setChecked(preventative)
-#        self.stages_threshold.setText(",".join((stages_threshold)))
-        print("Stages="+str(stages_threshold))
+        #self.numb_agent.setText(str(ran_agent_num))
+        #self.width.setText(str(ran_width))
+        #self.height.setText(str(ran_height))
+        #self.exposure.setText(str(ran_exposure))
+        #self.recover.setText(str(ran_recover))
+        #self.infection.setText(str(ran_infect))
+        #self.student_prop.setText(str(prop1))
+        #self.worker_prop.setText(str(prop2))
+        #self.retire_prop.setText(str(prop3))
+        #self.port.setText(str(ran_port))
+        #self.preventative_toggle.setChecked(preventative)
         create_server(ran_agent_num, ran_width, ran_height, ran_exposure, ran_recover, ran_infect, prop1, prop2, prop3,
                       ran_hub, homes, schools, workplaces,
                       home_capacity, school_capacity, work_capacity, leisure, shops, [], [], preventative,
                       stages_threshold, vacc_rate, export_results, filename, ran_port)
+     #Creates a number of transport hubs randomly
+     #Input: proportion: proportion of hubs in grid, width:width of the grid, height:height of the grid
+     #Output: network: a list of hubs that fit within the grid dimensions given
     def CreateRandomHubs(self,proportion,width,height):
         network={}
         hubs = self.randomCoordinates(float(proportion) * int(width) * int(height), width, height)
         for h in hubs:
             num = random.randrange(2, 4)
             hub_elem = []
-            # print(num)
             for i in range(num):
                 hub_elem.append(hubs[random.randrange(len(hubs))])
             # else:
@@ -580,14 +604,18 @@ class Form(QDialog):
 
             network[h] = hub_elem
         return network
-
+    #Creates an number of locations and allocates them a capacity
+    #Input: number:the number of agents in the grid, proportion: proportion of hubs in grid, width:width of the grid, height:height of the grid
+    #Output: environment: the coordinates of the locations, capacity: a dictionary keyed to those co-ordinates containing their respective capacities
     def CreateRandomEnvironment(self,number,proportion,width,height):
             capacity={}
             environment=self.randomCoordinates(float(proportion)*(int(width)*int(height)),width,height)
             for e in environment:
                 capacity[e]=random.randrange(int(number/2),int(number))
             return environment,capacity
-
+    #Creates some random coordinates based off the width and height given
+    #Input: The width and height of the grid and the number of coordinates
+    #Output: A list of random co-ordinates
     def randomCoordinates(self,number,width,height):
         out=[]
         for i in range(int(number)):
@@ -600,12 +628,16 @@ class Form(QDialog):
             out.append((x,y))
         return out
     # Greets the user
+
+    #Creates a new simulation based on the parameters given in the GUI
+    # Input: None
+    # Output:None
     def simulation(self):
         #self.thread = QtCore.QThread(self)
         self.StartButton.setEnabled(False)
         self.ran_button.setEnabled(False)
         self.ConfigLoad.setEnabled(False)
-        self.port.setText(str(get_port()))
+        self.port.setText(str(get_port()))# Sets the port visible to the user
         server=create_server(int(self.numb_agent.text()),int(self.width.text()),int(self.height.text()),int(self.exposure.text()),int(self.recover.text()),float(self.infection.text()),
                              float(self.worker_prop.text()),float(self.student_prop.text()),float(self.retire_prop.text()),self.hubs,self.homes,self.schools,self.workplaces,
                              self.homecapacity,self.schoolcapacity,self.workplacecapacity,self.entertain,self.shops,self.stationary_agents,self.moving_agents,self.preventative_toggle.isChecked(),self.stages_threshold.text().split(",")
@@ -615,10 +647,12 @@ class Form(QDialog):
        # server.launch()
 
         #self.thread.start()
-        print("Launched!")
+        #print("Launched!")
 
 
-        #From https://stackoverflow.com/questions/2838244/get-open-tcp-port-in-python/2838309#2838309
+    #This method creates a new instance of a model based off the information entered in the GUI
+    #Input: None
+    #Output: None
     def launch_server(self):
         if not self.setEnvironment:
             self.hubs = self.CreateRandomHubs(float(int(self.prop_hub.value()) / 100), int(self.width.text()),
@@ -644,7 +678,7 @@ class Form(QDialog):
         #self.ConfigLoad.setEnabled(False)
         if self.verify_config():
             self.sim=threading.Thread(target=self.simulation)
-            self.sim.setDaemon(True)
+            self.sim.setDaemon(True)# Allows the user to finish the simulation as soon as the GUI is closed
             #self.sim=multiprocessing.Process(target=self.server)
             self.sim.start()
         else:
@@ -655,17 +689,16 @@ class Form(QDialog):
             # error_message.exec_()
 
 
-
     def closeEvent(self, evnt):
         #self.sim.join()
         sys.exit()
 
-if __name__ == '__main__':
+#if __name__ == '__main__':
     # Create the Qt Application
-    app = QApplication(sys.argv)
+ #   app = QApplication(sys.argv)
     # Create and show the form
-    form = Form()
+  #  form = Form()
     #form.setStyle('Fusion')
-    form.show()
+   # form.show()
     # Run the main Qt loop
-    sys.exit(app.exec_())
+    #sys.exit(app.exec_())

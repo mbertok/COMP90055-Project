@@ -9,7 +9,7 @@ import numpy
 
 
 
-
+#Deprecated
 def Get_closest(locs, dest):
     min=9999#hardcoded for now
     next=(0,0)
@@ -19,6 +19,7 @@ def Get_closest(locs, dest):
             min=Manhattan_distance(loc, dest)
             next=loc
     return (int(next[0]),int(next[1]))
+#Deprecated
 def Manhattan_distance(x, y):
   #  print(x)
    # print(y)
@@ -33,29 +34,29 @@ class StationaryAgent(Agent):
 #class StationaryAgent(Agent):
 
 class Person(Agent):
-    """ An agent with fixed initial wealth."""
-    def __init__(self, unique_id, model,exposed_length,recovery_time,rate,x,y,initial_infection):
+
+    def __init__(self, unique_id, model,exposed_length,recovery_time,rate,x,y):
         super().__init__(unique_id, model)
-        if initial_infection:
-            infected = random.choice([True, False])
-        else:
-            infected=False
+        #if initial_infection:
+         #   infected = random.choice([True, False])
+       # else:
+        infected=False
         self.destination=(self.model.grid.width-1,self.model.grid.height-1)
         if infected:
             self.stage=2
         else:
             self.stage=1
         exposed_length=exposed_length/96
-        print("Exposed:"+str(exposed_length))
+        #print("Exposed:"+str(exposed_length))
         exposure_dist=truncnorm( a=(1 - exposed_length) / 1, b=(10 - exposed_length) / 1,loc=exposed_length,scale=1)
         self.exposure_threshold=int(exposure_dist.rvs(1)[0]*96)
-        print("Exposure:"+str(self.exposure_threshold))
+        #print("Exposure:"+str(self.exposure_threshold))
         self.expose=0
         self.infected_length=0
         recovery_time=recovery_time/96
         recover_dist = truncnorm(a=(1 - recovery_time) / 1, b=(10 - recovery_time) / 1, loc=recovery_time, scale=1)
         self.recover_period = int(recover_dist.rvs(1)[0]*96)
-        print("Recover:"+str(self.recover_period))
+        #print("Recover:"+str(self.recover_period))
         self.infect_prob=rate
         self.x=x
         self.y=y
@@ -134,6 +135,7 @@ class Person(Agent):
                 self.stay_time+=1
                 #increment stay_time
 
+    # Deprecated
     def check_routine_1(self):
         #Check time
         print(type(self))
@@ -204,12 +206,14 @@ class Person(Agent):
             else:
                 print("Not yet")
                 pass
-
+    #Moves the agent to the specified destination
+    #Input: The destination to move to
     def move(self,dest):
         #print("To:"+str(dest))
         self.model.grid.move_agent(self,(int(dest[0]),int(dest[1])))
         self.x,self.y=dest
 
+    # Deprecated
     def move_1(self,dest):
         possible_steps = self.model.grid.get_neighborhood(
             self.pos,
@@ -237,6 +241,7 @@ class Person(Agent):
         self.model.grid.move_agent(self, next_step)
         self.x,self.y=next_step
 
+    # Deprecated
     def infect_1(self):
         cellmates = self.model.grid.get_cell_list_contents([self.pos])
         if len(cellmates) > 1:
@@ -252,6 +257,11 @@ class Person(Agent):
                             c.stage = 2
                             c.expose=0
                             print("Infected!")
+    #Infects an agent with the disease
+    def infect(self):
+        self.stage=2
+
+    #This functions simulates the interactions an agent has with it's cellmates
     def interact(self):
         cellmates = self.model.grid.get_cell_list_contents([self.pos])
         cellmates=list(filter(lambda c: issubclass(type(c),Person), cellmates))
@@ -261,31 +271,27 @@ class Person(Agent):
          #       print(type(c))
                 cellmates.remove(c)
         numb_interactions=random.randrange(0,len(cellmates))
-        #print("interactions:"+str(numb_interactions))
 #        if numb_interactions
         for i in range(numb_interactions):
             a=random.choice(cellmates)
-            #print(type(a))
             if self.stage==1 and not(self.vaccinated):
                 #If interacting with infected agent
                 if a.stage==3 :
                     chance = numpy.random.random_sample()
-                    #print("Chance:" + str(chance))
-                   # print(self.model.infection_rate)
+
                     if float(chance) <= self.model.infection_rate:
                         self.stage = 2
                         self.expose = 0
-                        print("Infected!")
+                        #print("Infected!")
             elif self.stage==3:
                 #If interacting with healthy agent
                 if a.stage==1 and not(a.vaccinated):
                     chance = numpy.random.random_sample()
-                  #  print("Chance:" + str(chance))
-                   # print(self.model.infection_rate)
+
                     if float(chance) <= self.model.infection_rate:
                         a.stage = 2
                         a.expose = 0
-                        print("Infected!")
+                        #print("Infected!")
 
 
 
@@ -293,7 +299,7 @@ class Person(Agent):
 
 
 
-
+    #This function steps an agent through it's daily routine
     def step(self):
         if self.stage==2:
             self.expose+=1
@@ -305,7 +311,6 @@ class Person(Agent):
             if self.infected_length>=self.recover_period:
                 self.stage=4
                 self.infected_length=0
-                print("Recovered!"+str(self.unique_id))
 
         else:
             pass
@@ -393,6 +398,7 @@ class Person(Agent):
 
  #   def GenerateLeisurePlaces(self):
 
+    #Creates the paths an agent needs to
     def Create_paths(self,day):
         #self.path[day]=[]
       #  print(self.places[day])
@@ -401,6 +407,7 @@ class Person(Agent):
             if p>0:
                 to_add.append(nx.shortest_path(self.model.graph,source=(self.places[day][p-1]),target=self.places[day][p],weight="weight"))
             else:
+
                 if day==0:
                     if len(self.places[day])>1:
                         to_add.append(nx.shortest_path(self.model.graph,source=(self.places[day][p+1]),target=self.places[day][p],weight="weight"))#Starting location
@@ -425,6 +432,7 @@ class Person(Agent):
         for j in range(len(self.leavetimes[i+5])):
             stay_times.append(random.randrange(5,7))
         return stay_times
+    #Vaccinates an agent
     def vaccinate(self):
         self.vaccinated=True
 
@@ -433,23 +441,11 @@ class Person(Agent):
 
 
 class Worker(Person):
-     def __init__(self, unique_id, model,exposed_length,recovery_time,rate,x,y,initial_infection):
-         super().__init__( unique_id, model,exposed_length,recovery_time,rate,x,y,initial_infection)
-         #self.times = [random.randrange(7,9), random.randrange(7,10)]
-         #self.leavetime=[random.randrange(7,9),random.randrange(15,17)]
-         #home=self.setLocation(self.model.homes,self.model.home_current_capacity,self.model.home_max_capacity)
-         #workplace=self.setLocation(self.model.workplaces,self.model.workplace_current_capacity,
-#                                    self.model.workplace_max_capacity)
+     def __init__(self, unique_id, model,exposed_length,recovery_time,rate,x,y):
+         super().__init__( unique_id, model,exposed_length,recovery_time,rate,x,y)
 
-#         path_to_workplace=nx.shortest_path(self.model.graph,source=(home),target=workplace,weight="weight")
- #        path_to_home=nx.shortest_path(self.model.graph,source=(workplace),target=home,weight="weight")
-        # print("Home path:"+str(path_to_home))
-         #print("Workplace path:"+str(path_to_workplace))
          self.GenerateWeeklySchedule()
-     #    self.path={}
-      #   self.path[home]=path_to_home
-       #  self.path[workplace]=path_to_workplace
-        # self.places=[home,workplace]
+
          ##create path to follow for each destination
      def GenerateDailySchedule(self):
          home = self.setLocation(self.model.homes, self.model.home_current_capacity, self.model.home_max_capacity)
@@ -471,22 +467,10 @@ class Worker(Person):
 
 
 class Student(Person):
-    def __init__(self, unique_id, model, exposed_length, recovery_time, rate, x, y,initial_infection):
-        super().__init__(unique_id, model, exposed_length, recovery_time, rate, x, y,initial_infection)
-        #self.times = [random.randrange(8,9), random.randrange(5,7)]
-        #self.leavetime = [random.randrange(6,9),random.randrange(15,17)]
-       # home = self.setLocation(self.model.homes, self.model.home_current_capacity, self.model.home_max_capacity)
-        #school = self.setLocation(self.model.schools, self.model.school_current_capacity,
-                             #        self.model.school_max_capacity)
-      #  path_to_school = nx.shortest_path(self.model.graph, source=(home), target=school, weight="weight")
-      #  path_to_home = nx.shortest_path(self.model.graph, source=(school), target=home, weight="weight")
-     #   print("Home path:" + str(path_to_home))
-      #  print("school path:" + str(path_to_school))
+    def __init__(self, unique_id, model, exposed_length, recovery_time, rate, x, y):
+        super().__init__(unique_id, model, exposed_length, recovery_time, rate, x, y)
         self.GenerateWeeklySchedule()
-       # self.path = {}
-        #self.path[home] = path_to_home
-        #self.path[school] = path_to_school
-        #self.places = [home,school]
+
 
     def GenerateDailySchedule(self):
         home = self.setLocation(self.model.homes, self.model.home_current_capacity, self.model.home_max_capacity)
@@ -505,15 +489,10 @@ class Student(Person):
 
 
 class Retiree(Person):
-    def __init__(self, unique_id, model, exposed_length, recovery_time, rate, x, y,initial_infection):
-        super().__init__(unique_id, model, exposed_length, recovery_time, rate, x, y,initial_infection)
-        #self.leavetime=[0]
-        #self.times = [5]
-        #home = self.setLocation(self.model.homes, self.model.home_current_capacity, self.model.home_max_capacity)
+    def __init__(self, unique_id, model, exposed_length, recovery_time, rate, x, y):
+        super().__init__(unique_id, model, exposed_length, recovery_time, rate, x, y)
+
         self.GenerateWeeklySchedule()
-       # self.path={}
-        #self.path[home]=[home]
-        #self.places = [ home]
 
     def GenerateDailySchedule(self):
         home = self.setLocation(self.model.homes, self.model.home_current_capacity, self.model.home_max_capacity)
@@ -525,7 +504,7 @@ class Retiree(Person):
 
     def GenerateDailyTimes(self):
         return [0]
-
+#Not being used
 class Infection_Spreader_Moving(Agent):
 
     def __init__(self,unique_id,model,infect_prob):
@@ -547,7 +526,7 @@ class Infection_Spreader_Moving(Agent):
                             c.stage = 2
                             c.expose = 0
 
-
+#Not being used
 class Infection_Spreader_Stationary(Agent):
 
     def __init__(self,unique_id,model,infect_prob):

@@ -28,9 +28,10 @@ class Legend(TextElement):
             out.append("<span   style=\" white-space: nowrap; color:{};\"> {}</span> ".format(Colors[c], str(c)))
         out.append("</div>")
         out.append("<table id=\"data\"> ")
-        out.append("<tr><td>{}</td></tr>".format(model.schedule.steps))
+        #out.append("<tr><td>Day:{} Hour:{}</td></tr>".format(model.schedule.steps,model.hour))
+        out.append("<tr><td>Day:{} Hour:{}</td></tr>".format(model.day,model.hour))
         for i in range(1, 5, 1):
-            out.append("<tr><td>{}: </td><td>{}</td> </tr>".format(color[i-1],model.count_type(model,i)))
+            out.append("<tr><td>{}: </td><td>{}</td> </tr>".format(color[i-1], model.count_state(model, i)))
         out.append("</table> \n")
         #out.append("<div class='button'> <a href=\"#\" id =\"export\" role='button'>Export</a> </div>")
      #   out.append(" <script type='text/javascript'>$(document).ready(function () {"/
@@ -64,7 +65,7 @@ class Legend(TextElement):
         out.append("</div>")
         return out
 
-
+#This method 
 def create_server(numb_agents,width,height,expose,recover,rate,prop_worker,prop_student,prop_retire,hubs,homes,schools,workplaces,
                   home_capacity,school_capacity,work_capacity,entertain,shops,stationary_agents=[],moving_agents=[],preventative_toggle=False,stage_threshold=[0.2, 0.5, 0.7],
                   vacc_rate=0.5,export_results=False,filename="log.csv",port=0):
@@ -109,6 +110,7 @@ def create_server(numb_agents,width,height,expose,recover,rate,prop_worker,prop_
     server.launch()
     #return server
 
+#This method
 def agent_portrayal(agent):
     if issubclass(type(agent), Person):
         portrayal = {"Shape": "circle",
@@ -162,7 +164,7 @@ def agent_portrayal(agent):
                      }
         if agent.type is "Rail":
                 portrayal["Color"]=Places_To_Colors["Transport Hubs"]
-                portrayal["text"]="Trans"
+                #portrayal["text"]="Trans"
                # portrayal["Shape"] = Places_To_Icons["Transport Hubs"]
         elif agent.type is "Home":
             portrayal["Color"] = Places_To_Colors["Homes"]

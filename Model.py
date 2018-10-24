@@ -15,12 +15,7 @@ import sys
 
 import random
 
-def compute_gini(model):
-    agent_wealths = [agent.wealth for agent in model.schedule.agents]
-    x = sorted(agent_wealths)
-    N = model.num_agents
-    B = sum( xi * (N-i) for i,xi in enumerate(x) ) / (N*sum(x))
-    return (1 + (1/N) - 2*B)
+
 
 class Model(Model):
     """A model with some number of agents."""
@@ -29,8 +24,6 @@ class Model(Model):
                  ,export_results=False,filename="log.csv"):
         self.num_agents = N
         self.grid = MultiGrid(width, height, False)
-     #   print(str(width)+":"+str(height))
-     #   print(prop1)
         self.schedule = BaseScheduler(self)
         self.running = True
         self.expose=expose*96
@@ -40,7 +33,7 @@ class Model(Model):
         self.day=0
         self.hour=0
         self.quarter=0
-        self.traindelayprob=0.0#Change from hardcode later
+        self.traindelayprob=0.0
         self.time=96#15 minute intervals
         self.preventative_measures_active=preventative_measures_active
         self.vaccination=False
@@ -51,15 +44,16 @@ class Model(Model):
         self.vacc_rate=vacc_rate
 
 
-       # for i in range(len(blocked_cells)):
-       #     self.restricted.append((blocked_cells[0],blocked_cells[1]))
+
         #Create graph of grid
         self.graph=nx.Graph()
+        #In this loop we create links between neighbours on a grid, while avoiding links to squares
+        # that do not exist i.e exist outside of the bounds of our grid
         for i in range(width):
             for j in range(height):
                 self.graph.add_node((i,j))
-              #  print(str(i)+":"+str(j))
-                if i==0:
+                #We do not want the grid to wrap around
+                if i==0:# at an edge on the grid
                     if j==0:
                         self.graph.add_edge((i, j), (i + 1, j), weight=5)
                         self.graph.add_edge((i, j), (i, j + 1), weight=5)
@@ -111,77 +105,50 @@ class Model(Model):
                         self.graph.add_edge((i,j),(i-1,j-1),weight=5)
                         self.graph.add_edge((i,j),(i+1,j-1),weight=5)
                         self.graph.add_edge((i,j),(i+1,j+1),weight=5)
-       #     print(self.graph.edges)
-      #  print(self.graph.nodes)
-
-          #      self.graph.add_edge()
-        #Add neighbours
-
-        #Add transport links
-
-
         #self.summary=
+
         #Create hubs
         self.stations=hubs
-       # for hub in hubs:
-        #    for h in range(len(hub)):
-       #         if h == len(hub) - 1:
-        #            self.stations[hub[h]] = [hub[h - 1]]
-         #       elif h>0:
-          #         self.stations[hub[h]]=[hub[h-1],hub[h+1]]
-           #     elif h==0:
-            #        self.stations[hub[h]]=[hub[h+1]]
-             #   else:
-             #       pass
-              #  print(hub[h])
+
         for h in self.stations.keys():
-          #  print(h)
-         #   print(self.stations[h])
             co=[]
             for x in h:
                 co.append(int(x))
-          #  print(co)
             for r in self.stations[h]:
+                #Adding transport link to graph
                 self.graph.add_edge((co[0],co[1]),r,weight=2)
             self.grid.place_agent(StationaryAgent("Rail"), co)
-        #print("Stations: "+str(self.stations.keys()))
+
+
         #create homes
         self.homes=homes
         self.home_current_capacity={}
-       # self.home_max_capacity=home_max
         self.home_max_capacity={}
-       # for h in home_max.keys():
-         #   print("KeyH:"+str(h))
         for h in homes:
-          #  print("Home:"+str(h))
             self.grid.place_agent(StationaryAgent("Home"), h)
             self.home_current_capacity[h]=0
             self.home_max_capacity[h]=home_max[h]
+
         #create schools
         self.schools=schools
         self.school_current_capacity={}
-        #self.school_max_capacity=school_max
         self.school_max_capacity={}
 
         for s in schools:
-          #  print("School:"+str(s))
             self.grid.place_agent(StationaryAgent("School"), s)
             self.school_current_capacity[s]=0
             self.school_max_capacity[s]=school_max[s]
         #create workplaces
         self.workplaces=workplaces
         self.workplace_current_capacity={}
-        #self.workplace_max_capacity=work_max
         self.workplace_max_capacity={}
 
         for w in workplaces:
-       #     print("Workplace:"+str(w))
             self.grid.place_agent(StationaryAgent("Workplace"), w)
             self.workplace_current_capacity[w]=0
             self.workplace_max_capacity[w]=work_max[w]
         # Create agents
         sum_prop=float(prop1+prop2+prop3)
-        print(sum_prop)
 
         #Test code
         self.shops=shops
@@ -207,36 +174,34 @@ class Model(Model):
         else:
             self.initial_infected=False
 
+
+        #Creating the agent population
         self.agentprop=[N*(prop1/sum_prop),N*(prop2/sum_prop),N*(prop3/sum_prop)]
+        self.infection_count=int(random.uniform(0.05,0.1)*N)
         stage=1
         agent_id=0
         for p in self.agentprop:
-          #  print("P:"+str(p))
-          #  print("stage:"+str(stage))
             for i in range(int(p)):
                 # Add the agent to a random grid cell
                 x = random.randrange(self.grid.width)
                 y = random.randrange(self.grid.height)
                 #Place everyone in their own homes
                 if stage==1:
-                #    print("Worker")
-                    a = Worker(agent_id, self,self.expose,self.recover,self.infection_rate,x,y,self.initial_infected)
+                    a = Worker(agent_id, self,self.expose,self.recover,self.infection_rate,x,y)
                 elif stage==2:
-                  #  print("Student")
-                    a= Student(agent_id, self,self.expose,self.recover,self.infection_rate,x,y,self.initial_infected)
+                    a= Student(agent_id, self,self.expose,self.recover,self.infection_rate,x,y)
                 elif stage==3:
-                   # print("Retire")
-                    a=Retiree(agent_id, self,self.expose,self.recover,self.infection_rate,x,y,self.initial_infected)
+                    a=Retiree(agent_id, self,self.expose,self.recover,self.infection_rate,x,y)
                 a.x, a.y = a.places[0][1]
                 self.schedule.add(a)
                 self.grid.place_agent(a, (int(a.x), int(a.y)))
-               # print("Loc:"+str(a.x)+":"+str(a.y))
                 agent_id+=1
-            if agent_id%100==0:
-                print(str(agent_id)+" agents generated")
+                #print((agent_id/N))
+                if (agent_id/N)%0.1==0:
+                    print(str(agent_id)+" agents generated")#Progress message
 
             stage+=1
-       # print("Created agents")
+
         if not self.initial_infected:
             for s1,s2 in infect_agent_station:
                 # Add the agent to a random grid cell
@@ -252,86 +217,92 @@ class Model(Model):
                 # create Agent
                 # Add to scheduler
                 agent_id+=1
+        else:
+            # setup infected population
+            for e in random.sample(self.schedule.agents, self.infection_count):
+                e.infect()
 
 
-        #Change later
         self.datacollector = DataCollector(
-        {"Healthy": lambda m: self.count_type(m,1),
-         "Exposed": lambda m: self.count_type(m, 2),
-         "Infected": lambda m: self.count_type(m, 3),
-         "Recovered": lambda m: self.count_type(m, 4)
+        {"Healthy": lambda m: self.count_state(m, 1),
+         "Exposed": lambda m: self.count_state(m, 2),
+         "Infected": lambda m: self.count_state(m, 3),
+         "Recovered": lambda m: self.count_state(m, 4)
 
          })
-        print("Finished!")
         self.export_results=export_results
         if export_results:
-#            if not self.output_file.closed:
- #               self.output_file.close()
+            #Creating the file to export to
             self.output_file=open(filename,"w")
+            #creating the header
             self.output_file.write("Step,Healthy,Exposed,Infected,Recovered \n")
+            #Setting the file to close when model shut down
             atexit.register(self.close_file,self)
-            print("Export file created")
+            #print("Export file created")
        # self.datacollector = DataCollector(
         #    model_reporters={"Gini": compute_gini},  # A function to call
          #   agent_reporters={"Wealth": "wealth"})  # An agent attribute
 
-
+    #This function steps through a "tick" in the system
+    #Input:None
+    #Output: None
     def step(self):
-        #print("Step")
-        self.datacollector.collect(self)
-        if self.export_results:
-            try:
-                self.output_file.write(
-                "{},{},{},{},{} \n".format(self.schedule.steps, self.count_type(self, 1), self.count_type(self, 2),
-                                           self.count_type(self, 3), self.count_type(self, 4)))
-            except ValueError:
-                sys.exit()
-        self.quarter+=1
-        if self.quarter>3:
-            self.hour+=1
-            self.quarter=0
-        if self.hour>23:
-            self.hour=0
-            self.day+=1
-        if self.preventative_measures_active:
-            print(self.preventative_stage)
-            if self.preventative_stage<len(self.stage_thresholds)-1:
-                #check proportion
-                print("Curr:"+str(self.count_type(self,3))+", total"+str(self.num_agents))
-                print("Ratio:"+str(float(self.count_type(self,3)/self.num_agents)))
-                print(float(self.stage_thresholds[self.preventative_stage+1]))
-                if float(self.count_type(self,3)/self.num_agents)>float(self.stage_thresholds[self.preventative_stage+1]):
-                #increment stage
-                    self.preventative_stage+=1
-                    print("Stage!")
-                if self.preventative_stage>=0:
-                    print("Vacc")
-                    try:
-                        #Get random agents to vaccinate
-                        agents=[agent for agent in self.schedule.agents if (not agent.vaccinated) and agent.stage==1 and agent.staying]
-                        agents_to_vaccinate=random.sample(agents,int(self.vacc_rate))
-                        for a in agents_to_vaccinate:
-                            a.vaccinate()
-                    except:
-                        pass
-                if self.preventative_stage==1:
-                    self.entertain_lockdown=True
-                    print("Entertain!")
-                if self.preventative_stage==2:
-                    self.school_lockdown=True
-                    print("School!")
+        susceptible=[agent for agent in self.schedule.agents if ((not agent.vaccinated) and agent.stage==1) or agent.stage==4]
+        infected=[agent for agent in self.schedule.agents if agent.stage==3 or agent.stage==2]
+       # print((susceptible))
+       # print(infected)
+        if susceptible and infected:# If there are still agents to infect or infectees
+                #print("Step")
+            self.datacollector.collect(self)
+            if self.export_results:#Writing to export file
+                try:
+                    self.output_file.write(
+                    "{},{},{},{},{} \n".format(self.schedule.steps, self.count_state(self, 1), self.count_state(self, 2),
+                                               self.count_state(self, 3), self.count_state(self, 4)))
+                except ValueError:
+                    sys.exit()
+            #Updating the time
+            self.quarter+=1
+            if self.quarter>3:
+                self.hour+=1
+                self.quarter=0
+            if self.hour>23:
+                self.hour=0
+                self.day+=1
 
-        self.schedule.step()
+            if self.preventative_measures_active:#Implementing preventative measures
+                if self.preventative_stage<len(self.stage_thresholds)-1:
+                    #check proportion
+                    if float(self.count_state(self, 3) / self.num_agents)>float(self.stage_thresholds[self.preventative_stage + 1]):
+                    #increment stage
+                        self.preventative_stage+=1
+                    if self.preventative_stage>=0:
+                        try:
+                            #Get random agents to vaccinate
+                            agents=[agent for agent in self.schedule.agents if (not agent.vaccinated) and agent.stage==1 and agent.staying]
+                            agents_to_vaccinate=random.sample(agents,int(self.vacc_rate))
+                            for a in agents_to_vaccinate:
+                                a.vaccinate()
+                        except:
+                            pass
+                    if self.preventative_stage==1:
+                        self.entertain_lockdown=True
+                    if self.preventative_stage==2:
+                        self.school_lockdown=True
+
+            self.schedule.step()
        #def count(self):
-     #   for
+         #   for
     @staticmethod
+    #This function closes the file when the system closes
+    #Input: model
     def close_file(model):
         model.output_file.close()
     @staticmethod
-    def count_type(model, stage):
-        """
-        Change later
-        """
+    #This function counts the number of agents in some state
+    #Input: model, stage: the state the agent is in
+    #Output: The number of agents in the given state in the model
+    def count_state(model, stage):
         count = 0
         for person in model.schedule.agents:
             if person.stage == stage:
